@@ -1,0 +1,19 @@
+<kml xmlns="http://earth.google.com/kml/2.0">
+<Document>
+<name>CUSF Landing Prediction</name>
+<Placemark>
+  <name>Flight Path</name>
+  <Style>
+    <LineStyle>
+      <color>FF0000FF</color>
+      <width>4</width>
+    </LineStyle>
+	<PolyStyle id="khPolyStyle810">
+		<color>7f00ff00</color>
+	</PolyStyle>
+  </Style>
+  <LineString>
+    <tessellate>1</tessellate>
+    <extrude>0</extrude>
+    <altitudeMode>absolute</altitudeMode>
+    <coordinates>

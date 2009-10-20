@@ -1,0 +1,31 @@
+
+CU Spaceflight Landing Prediction Software
+Copyright (c) CU Spaceflight 2009, All Right Reserved
+
+THIS CODE AND INFORMATION ARE PROVIDED "AS IS" WITHOUT WARRANTY OF ANY 
+KIND, EITHER EXPRESSED OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE
+IMPLIED WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A
+PARTICULAR PURPOSE.
+
+
+For more information please see our wiki:
+http://www.cuspaceflight.co.uk/wiki/
+
+
+-------------------
+BUILDING
+-------------------
+
+Under Linux/Mac OS X simply type "make" at the command prompt.
+
+For Windows please see the wiki for up to date information.
+
+
+
+-------------------
+USAGE
+-------------------
+
+Type "./pred -h" at the command prompt for usage information.
+
+Again, more information and examples are on the wiki.
