@@ -57,14 +57,14 @@ int load_data(int lat, int lng, long int timestamp, wind_data** w_data, long int
 
         // read in first line of file containing information on the region covered by the data file
         // lat1,lng1 etc. contain the limits og the dataset
-        count = fscanf(data_file, "%g,%d,%d,%g,%g,%g,%g,%d\n", &radius_of_earth, &u_size, &v_size, &lat1, &lng1, &lat2, &lng2, &start_timestamp);
+        count = fscanf(data_file, "%g,%d,%d,%g,%g,%g,%g,%ld\n", &radius_of_earth, &u_size, &v_size, &lat1, &lng1, &lat2, &lng2, &start_timestamp);
         if (count != 8) {
             fprintf(stderr, "ERROR: error parseing wind data file header\n");
             return 0;
         }
         
         if (verbosity>1)
-            fprintf(stderr, "wind data file header:\n\tRadius of Earth: %g\n\tSize: %d,%d\n\tBounds: %g,%g - %g,%g\n\tStart timestamp: %d\n", radius_of_earth, u_size, v_size, lat1, lng1, lat2, lng2, start_timestamp);
+            fprintf(stderr, "wind data file header:\n\tRadius of Earth: %g\n\tSize: %d,%d\n\tBounds: %g,%g - %g,%g\n\tStart timestamp: %ld\n", radius_of_earth, u_size, v_size, lat1, lng1, lat2, lng2, start_timestamp);
         
         // check the size is what we are set up for
         if (u_size != GRIB_POINTS || v_size != GRIB_POINTS) {

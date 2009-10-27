@@ -94,7 +94,7 @@ int get_wind(float lat, float lng, float alt, long int timestamp, float* wind_v,
     {
         // we have flown off the edge of the current tile so we need to load in a new one
         if (verbosity)
-            fprintf(stderr, "loading wind data tile, lat: %d, lng: %d, timestamp: %d\n", tile_lat, tile_lng, timestamp);
+            fprintf(stderr, "loading wind data tile, lat: %d, lng: %d, timestamp: %ld\n", tile_lat, tile_lng, timestamp);
             
         if (!load_data(tile_lat, tile_lng, timestamp, data, &current_tile_start_time)) {
             fprintf(stderr, "ERROR: couldn't load requested wind data tile\n");
