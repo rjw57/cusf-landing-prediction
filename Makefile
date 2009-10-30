@@ -1,5 +1,6 @@
 
 LDFLAGS=-lm
+CFLAGS=-Wall
 
 PRED_OBJECTS = \
 	pred_src/pred.o \
