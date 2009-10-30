@@ -16,10 +16,12 @@
 
 #include "wind_data.h"
 #include "wind_files.h"
+#include "altitude.h"
 
 // run the model
-// remember to call init_altitude before calling run_model
-int run_model(wind_file_cache_t* cache, float initial_lat, float initial_lng, float initial_alt, long int initial_timestamp);
+int run_model(wind_file_cache_t* cache, altitude_model_t* alt_model,
+              float initial_lat, float initial_lng, float initial_alt, 
+	      long int initial_timestamp);
 
 #define TIMESTEP 1          // in seconds
 #define LOG_DECIMATE 50     // write entry to output files every x timesteps

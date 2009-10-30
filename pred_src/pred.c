@@ -171,14 +171,22 @@ int main(int argc, const char *argv[]) {
         exit(1);
     }
     
-    // do the actual stuff!!
-    if(!init_altitude(descent_mode, burst_alt, ascent_rate, drag_coeff)) {
-        fprintf(stderr, "ERROR: error initialising altitude profile\n");
-        exit(1);
-    }
-    if (!run_model(file_cache, initial_lat, initial_lng, initial_alt, initial_timestamp)) {
-        fprintf(stderr, "ERROR: error during model run!\n");
-        exit(1);
+    {
+        // do the actual stuff!!
+        altitude_model_t* alt_model = altitude_model_new(descent_mode, burst_alt, 
+                                                         ascent_rate, drag_coeff);
+        if(!alt_model) {
+                fprintf(stderr, "ERROR: error initialising altitude profile\n");
+                exit(1);
+        }
+
+        if (!run_model(file_cache, alt_model, 
+                       initial_lat, initial_lng, initial_alt, initial_timestamp)) {
+                fprintf(stderr, "ERROR: error during model run!\n");
+                exit(1);
+        }
+
+        altitude_model_free(alt_model);
     }
     
     // write footer to KML and close output files

@@ -12,13 +12,13 @@
 // --------------------------------------------------------------
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <math.h>
 
 #include "pred.h"
 #include "altitude.h"
 #include "run_model.h"
 
-typedef struct altitude_model_s altitude_model_t;
 struct altitude_model_s
 {
     float   burst_altitude;
@@ -30,23 +30,33 @@ struct altitude_model_s
     int     burst_time;
 };
 
-static altitude_model_t _alt_singleton;
+altitude_model_t*
+altitude_model_new(int dec_mode, float burst_alt, float asc_rate, float drag_co) 
+{
+    altitude_model_t* self = (altitude_model_t*)malloc(sizeof(altitude_model_t));
 
-int init_altitude(int dec_mode, float burst_alt, float asc_rate, float drag_co) {
     // this function doesn't do anything much at the moment
     // but will prove useful in the future
     
-    _alt_singleton.burst_altitude = burst_alt;
-    _alt_singleton.ascent_rate = asc_rate;
-    _alt_singleton.drag_coeff = drag_co;
-    _alt_singleton.descent_mode = dec_mode;
-    return 1;
+    self->burst_altitude = burst_alt;
+    self->ascent_rate = asc_rate;
+    self->drag_coeff = drag_co;
+    self->descent_mode = dec_mode;
+
+    return self;
 }
 
-int get_altitude(int time_into_flight, float* alt) {
-    
-    altitude_model_t* self = &(_alt_singleton);
-    
+void
+altitude_model_free(altitude_model_t* self)
+{
+    if(!self)
+        return;
+
+    free(self);
+}
+
+int 
+altitude_model_get_altitude(altitude_model_t* self, int time_into_flight, float* alt) {
     // TODO: this section needs some work to make it more flexible
     
     // time == 0 so setup initial altitude stuff

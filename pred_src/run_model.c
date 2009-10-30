@@ -45,8 +45,10 @@ _get_frame(float lat, float lng, float alt,
     *d_dlng = (2.f * M_PI) * r * sinf(theta) / 360.f;
 }
 
-int run_model(wind_file_cache_t* cache, float initial_lat, float initial_lng, float initial_alt, long int initial_timestamp) {
-
+int run_model(wind_file_cache_t* cache, altitude_model_t* alt_model,
+              float initial_lat, float initial_lng, float initial_alt,
+              long int initial_timestamp) 
+{
     float alt = initial_alt;
     float lat = initial_lat; 
     float lng = initial_lng;
@@ -56,7 +58,7 @@ int run_model(wind_file_cache_t* cache, float initial_lat, float initial_lng, fl
     
     float wind_v, wind_u;
     
-	while(get_altitude(timestamp - initial_timestamp, &alt)) {
+	while(altitude_model_get_altitude(alt_model, timestamp - initial_timestamp, &alt)) {
         float ddlat, ddlng;
 
 		if(!get_wind(cache, lat, lng, alt, timestamp, &wind_v, &wind_u)) {
