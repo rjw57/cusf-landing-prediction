@@ -25,6 +25,8 @@
 #include <string.h>
 #include <math.h>
 
+extern int verbosity;
+
 struct wind_file_cache_entry_s
 {
         char                   *filepath;               // Full path.
@@ -153,7 +155,8 @@ wind_file_cache_new(const char *directory)
         self->n_entries = 0;
         self->directory_name = strdup(directory);
 
-        fprintf(stderr, "Scanning directory '%s'.\n", directory);
+        if(verbosity > 0)
+                fprintf(stderr, "INFO: Scanning directory '%s'.\n", directory);
 
         // Use scandir scan the directory looking for data files.
         _scandir_current_cache = self; // ew!
@@ -163,7 +166,8 @@ wind_file_cache_new(const char *directory)
                 wind_file_cache_free(self);
                 return NULL;
         }
-        fprintf(stderr, "Found %i data files.\n", rv);
+        if(verbosity > 0)
+                fprintf(stderr, "INFO: Found %i data files.\n", rv);
         self->n_entries = rv;
 
         self->entries = (struct wind_file_cache_entry_s**)malloc(sizeof(struct wind_file_cache_entry_s*)*self->n_entries);
@@ -195,10 +199,12 @@ wind_file_cache_new(const char *directory)
                                 &(self->entries[i]->timestamp));
                 if(!parse_rv)
                 {
-                        fprintf(stderr, "Hmm... some files appear to have changed under me!");
+                        fprintf(stderr, "WARN: Hmm... some files appear to have "
+                                        "changed under me!");
                 }
 
-                fprintf(stderr, "Found %s.\n", filepath);
+                if(verbosity > 1)
+                        fprintf(stderr, "INFO: Found %s.\n", filepath);
 
                 // finished with this entry
                 free(dir_entries[i]);

@@ -17,6 +17,8 @@
 #include <assert.h>
 #include <math.h>
 
+extern int verbosity;
+
 typedef struct wind_file_axis_s wind_file_axis_t;
 struct wind_file_axis_s 
 {
@@ -169,9 +171,11 @@ _parse_values_line(const char* line, unsigned int n_values, float* values)
         while(1 == sscanf(record, "%f", &value)) {
                 if(record_idx >= n_values)
                 {
-                        fprintf(stderr, "WARN: Read too many values for axis (%i, expected %i). "
-                                        "Ignoring them.\n",
-                                        record_idx, n_values);
+                        if(verbosity > 0)
+                                fprintf(stderr, "WARN: Read too many values for axis "
+                                                "(%i, expected %i). "
+                                                "Ignoring them.\n",
+                                                record_idx, n_values);
                 } else {
                         values[record_idx] = value;
                 }
@@ -201,7 +205,8 @@ wind_file_new(const char* filepath)
         int num_lines, num_axes, num_components, i;
         wind_file_t* self;
 
-        fprintf(stderr, "INFO: Loading wind data from '%s'.\n", filepath);
+        if(verbosity > 0)
+                fprintf(stderr, "INFO: Loading wind data from '%s'.\n", filepath);
 
         file = fopen(filepath, "r");
         if(!file) {
@@ -346,8 +351,10 @@ wind_file_new(const char* filepath)
                 }
         }
 
-        fprintf(stderr, "INFO: Data is %i axis made up of (%i records) x (%i components).\n",
-                        num_axes, num_lines, num_components);
+        if(verbosity > 0)
+                fprintf(stderr, "INFO: Data is %i axis made up of "
+                                "(%i records) x (%i components).\n",
+                                num_axes, num_lines, num_components);
 
         // we have everything we need to actually read the data now. Allocate an
         // array to store it.
@@ -512,7 +519,8 @@ wind_file_get_wind(wind_file_t* file, float lat, float lon, float height,
                 if(!_wind_file_axis_find_value(file->axes[1], lat,
                                         _float_is_left_of, &left_lat_idx, &right_lat_idx))
                 {
-                        fprintf(stderr, "WARN: Latitude %f is not covered by file.\n", lat);
+                        if(verbosity > 0)
+                                fprintf(stderr, "WARN: Latitude %f is not covered by file.\n", lat);
                         return;
                 }
                 left_lat = file->axes[1]->values[left_lat_idx];
@@ -522,14 +530,17 @@ wind_file_get_wind(wind_file_t* file, float lat, float lon, float height,
                 if(!_wind_file_axis_find_value(file->axes[2], lon,
                                         _longitude_is_left_of, &left_lon_idx, &right_lon_idx))
                 {
-                        fprintf(stderr, "WARN: Longitude %f is not covered by file.\n", lon);
+                        if(verbosity > 0)
+                                fprintf(stderr, "WARN: Longitude %f is not covered by file.\n", lon);
                         return;
                 }
                 left_lon = file->axes[2]->values[left_lon_idx];
                 right_lon = file->axes[2]->values[right_lon_idx];
 
-//                fprintf(stderr, "INFO: Moved to latitude/longitude cell (%f,%f)-(%f,%f)\n",
-//                                left_lat, left_lon, right_lat, right_lon);
+                if(verbosity > 1)
+                        fprintf(stderr, "INFO: Moved to latitude/longitude "
+                                        "cell (%f,%f)-(%f,%f)\n",
+                                        left_lat, left_lon, right_lat, right_lon);
 
                 have_valid_latlon_cache = 1;
         }
@@ -624,23 +635,27 @@ wind_file_get_wind(wind_file_t* file, float lat, float lon, float height,
                 if(left_pr_idx == file->axes[0]->n_values)
                 {
                         left_pr_idx = right_pr_idx;
-                        fprintf(stderr, "WARN: Moved to %.2fm, below height where we have data. "
-                                        "Assuming we're at %.fmb or approx. %.2fm.\n",
-                                        height,
-                                        file->axes[0]->values[left_pr_idx],
-                                        _wind_file_get_height(file,
-                                                left_lat_idx, left_lon_idx, left_pr_idx));
+                        if(verbosity > 0)
+                                fprintf(stderr, "WARN: Moved to %.2fm, below height where we "
+                                                "have data. "
+                                                "Assuming we're at %.fmb or approx. %.2fm.\n",
+                                                height,
+                                                file->axes[0]->values[left_pr_idx],
+                                                _wind_file_get_height(file,
+                                                        left_lat_idx, left_lon_idx, left_pr_idx));
                 }
 
                 if(right_pr_idx == file->axes[0]->n_values)
                 {
                         right_pr_idx = left_pr_idx;
-                        fprintf(stderr, "WARN: Moved to %.2fm, above height where we have data. "
-                                        "Assuming we're at %.fmb or approx. %.2fm.\n",
-                                        height,
-                                        file->axes[0]->values[right_pr_idx],
-                                        _wind_file_get_height(file,
-                                                left_lat_idx, left_lon_idx, right_pr_idx));
+                        if(verbosity > 0)
+                                fprintf(stderr, "WARN: Moved to %.2fm, above height where we "
+                                                "have data. "
+                                                "Assuming we're at %.fmb or approx. %.2fm.\n",
+                                                height,
+                                                file->axes[0]->values[right_pr_idx],
+                                                _wind_file_get_height(file,
+                                                        left_lat_idx, left_lon_idx, right_pr_idx));
                 }
 
                 if((left_pr_idx == file->axes[0]->n_values) ||
@@ -651,9 +666,10 @@ wind_file_get_wind(wind_file_t* file, float lat, float lon, float height,
                         return;
                 }
 
-//                fprintf(stderr, "INFO: Moved to pressure cell (%.fmb, %.fmb)\n", 
-//                                file->axes[0]->values[left_pr_idx],
-//                                file->axes[0]->values[right_pr_idx]);
+                if(verbosity > 1)
+                        fprintf(stderr, "INFO: Moved to pressure cell (%.fmb, %.fmb)\n", 
+                                        file->axes[0]->values[left_pr_idx],
+                                        file->axes[0]->values[right_pr_idx]);
 
                 have_valid_pressure_cache = 1;
         }
