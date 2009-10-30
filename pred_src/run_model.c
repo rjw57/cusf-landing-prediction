@@ -24,6 +24,15 @@ extern int verbosity;
 
 #define RADIUS_OF_EARTH 6371009.f
 
+typedef struct model_state_s model_state_t;
+struct model_state_s
+{
+    float               lat;
+    float               lng;
+    float               alt;
+    altitude_model_t   *alt_model;
+};
+
 // Get the distance (in metres) of one degree of latitude and one degree of
 // longitude. This varys with height (not much grant you).
 static void
@@ -45,40 +54,62 @@ _get_frame(float lat, float lng, float alt,
     *d_dlng = (2.f * M_PI) * r * sinf(theta) / 360.f;
 }
 
-int run_model(wind_file_cache_t* cache, altitude_model_t* alt_model,
-              float initial_lat, float initial_lng, float initial_alt,
-              long int initial_timestamp) 
+static int 
+_advance_one_timestep(wind_file_cache_t* cache, 
+                      unsigned long delta_t,
+                      unsigned long timestamp, unsigned long initial_timestamp,
+                      unsigned int n_states, model_state_t* states)
 {
-    float alt = initial_alt;
-    float lat = initial_lat; 
-    float lng = initial_lng;
-    long int timestamp = initial_timestamp;
-    
-    int log_counter = 0; // only write position to output files every LOG_DECIMATE timesteps
-    
-    float wind_v, wind_u;
-    
-	while(altitude_model_get_altitude(alt_model, timestamp - initial_timestamp, &alt)) {
-        float ddlat, ddlng;
+    unsigned int i;
 
-		if(!get_wind(cache, lat, lng, alt, timestamp, &wind_v, &wind_u)) {
+    for(i=0; i<n_states; ++i)
+    {
+        float ddlat, ddlng;
+        float wind_v, wind_u;
+        model_state_t* state = &(states[i]);
+
+        if(!altitude_model_get_altitude(state->alt_model, 
+                                        timestamp - initial_timestamp, &state->alt))
+            return 0;
+
+		if(!get_wind(cache, state->lat, state->lng, state->alt, timestamp, &wind_v, &wind_u)) {
             fprintf(stderr, "ERROR: error getting wind data\n");
 			return 0;
 		}
 
-        _get_frame(lat, lng, alt, &ddlat, &ddlng);
+        _get_frame(state->lat, state->lng, state->alt, &ddlat, &ddlng);
 
         // NOTE: it this really the right thing to be doing? - think about what
         // happens near the poles
 
-        lat += wind_v * TIMESTEP / ddlat;
-        lng += wind_u * TIMESTEP / ddlng;
+        state->lat += wind_v * delta_t / ddlat;
+        state->lng += wind_u * delta_t / ddlng;
+    }
 
+    return 1;
+}
+
+int run_model(wind_file_cache_t* cache, altitude_model_t* alt_model,
+              float initial_lat, float initial_lng, float initial_alt,
+              long int initial_timestamp) 
+{
+    model_state_t state;
+
+    state.alt = initial_alt;
+    state.lat = initial_lat;
+    state.lng = initial_lng;
+    state.alt_model = alt_model;
+
+    long int timestamp = initial_timestamp;
+    
+    int log_counter = 0; // only write position to output files every LOG_DECIMATE timesteps
+    
+	while(_advance_one_timestep(cache, TIMESTEP, timestamp, initial_timestamp, 1, &state))
+    {
 		if (log_counter == LOG_DECIMATE) {
-            write_position(lat, lng, alt, timestamp);
+            write_position(state.lat, state.lng, state.alt, timestamp);
             log_counter = 0;
 		}
-        
         log_counter++;
         timestamp += TIMESTEP;
 	}
