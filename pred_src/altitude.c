@@ -24,6 +24,8 @@
 // units of degrees celcius, metres, KPa and Kg/metre cubed
 static float get_density(float altitude);
 
+#define G 9.8
+
 struct altitude_model_s
 {
     float   burst_altitude;

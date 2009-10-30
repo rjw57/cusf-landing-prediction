@@ -45,7 +45,5 @@ int                  altitude_model_get_altitude
 #define DESCENT_MODE_DESCENDING 1
 #define DESCENT_MODE_NORMAL 0
 
-#define G 9.8
-
 #endif // __ALTITUDE_H__
 
