@@ -181,22 +181,43 @@ def write_file(output_format, data, window, mintime, maxtime):
         log.info('   Writing \'%s\'...' % output_filename)
         output = open(output_filename, 'w')
 
-        # Write the header
+        # Write the header.
         output.write('# window centre latitude, window latitude radius, window centre longitude, window longitude radius, POSIX timestamp\n')
         header = window + (timestamp,)
         output.write(','.join(map(str,header)) + '\n')
 
-        # Write the number of lines of data
-        output.write('# num_lines\n')
+        # Write the axis count.
+        output.write('# num_axes\n')
+        output.write('3\n') # FIXME: HARDCODED!
+
+        # Write each axis, a record showing the size and then one with the values.
+        output.write('# axis 1: pressures\n')
+        output.write(str(hgtprs.maps['lev'].shape[0]) + '\n')
+        output.write(','.join(map(str,hgtprs.maps['lev'][:])) + '\n')
+        output.write('# axis 2: latitudes\n')
+        output.write(str(hgtprs.maps['lat'].shape[0]) + '\n')
+        output.write(','.join(map(str,hgtprs.maps['lat'][:])) + '\n')
+        output.write('# axis 3: longitudes\n')
+        output.write(str(len(longitudes)) + '\n')
+        output.write(','.join(map(lambda x: str(x[1]), longitudes)) + '\n')
+
+        # Write the number of lines of data.
+        output.write('# number of lines of data\n')
         output.write('%s\n' % (hgtprs.shape[1] * hgtprs.shape[2] * len(longitudes)))
 
+        # Write the number of components in each data line.
+        output.write('# data line component count\n')
+        output.write('3\n') # FIXME: HARDCODED!
+
         # Write the data itself.
-        output.write('# latitude, longitude, geopotential height [gpm], u-component wind [m/s], v-component wind [m/s]\n')
+        output.write('# now the data in axis 3 major order\n')
+        output.write('# data is: '
+                     'geopotential height [gpm], u-component wind [m/s], '
+                     'v-component wind [m/s]\n')
         for pressureidx, pressure in enumerate(hgtprs.maps['lev']):
             for latidx, latitude in enumerate(hgtprs.maps['lat']):
                 for lonidx, longitude in longitudes:
-                    record = ( latitude, longitude, 
-                               hgtprs.array[timeidx,pressureidx,latidx,lonidx], \
+                    record = ( hgtprs.array[timeidx,pressureidx,latidx,lonidx], \
                                ugrdprs.array[timeidx,pressureidx,latidx,lonidx], \
                                vgrdprs.array[timeidx,pressureidx,latidx,lonidx] )
                     output.write(','.join(map(str,record)) + '\n')
