@@ -22,6 +22,29 @@
 
 extern int verbosity;
 
+#define RADIUS_OF_EARTH 6371009.f
+
+// Get the distance (in metres) of one degree of latitude and one degree of
+// longitude. This varys with height (not much grant you).
+static void
+_get_frame(float lat, float lng, float alt, 
+        float *d_dlat, float *d_dlng)
+{
+    float theta, r;
+
+    theta = 2.f * M_PI * (90.f - lat) / 360.f;
+    r = RADIUS_OF_EARTH + alt;
+
+    // See the differentiation section of
+    // http://en.wikipedia.org/wiki/Spherical_coordinate_system
+
+    // d/dv = d/dlat = -d/dtheta
+    *d_dlat = (2.f * M_PI) * r / 360.f;
+
+    // d/du = d/dlong = d/dphi
+    *d_dlng = (2.f * M_PI) * r * sinf(theta) / 360.f;
+}
+
 int run_model(wind_file_cache_t* cache, float initial_lat, float initial_lng, float initial_alt, long int initial_timestamp) {
 
     float alt = initial_alt;
@@ -34,22 +57,20 @@ int run_model(wind_file_cache_t* cache, float initial_lat, float initial_lng, fl
     float wind_v, wind_u;
     
 	while(get_altitude(timestamp - initial_timestamp, &alt)) {
-	    
-	    // wrap lng values if they exceed the defined range - here we use -180 < lng <= 180
-        while (lng > 180) lng -= 360;
-        while (lng <= -180) lng += 360;
-        // NOTE: what to do if the lat exceeds +/-90 is wierd, need to think about what to do in that case
-	    
+        float ddlat, ddlng;
+
 		if(!get_wind(cache, lat, lng, alt, timestamp, &wind_v, &wind_u)) {
             fprintf(stderr, "ERROR: error getting wind data\n");
 			return 0;
 		}
 
-		// NOTE: it this really the right thing to be doing? - think about what happens near the poles
-		lat += wind_v * TIMESTEP * METRES_TO_DEGREES;   // 1 degree of latitude always corresponds to same distance
-		// depending on latitude 1 degree of longitude is equivalent to a different distance in metres
-		// assuming earth is spherical as the data from the grib does
-        lng += wind_u * TIMESTEP * METRES_TO_DEGREES / fabs(cos(DEGREES_TO_RADIANS * lat));
+        _get_frame(lat, lng, alt, &ddlat, &ddlng);
+
+        // NOTE: it this really the right thing to be doing? - think about what
+        // happens near the poles
+
+        lat += wind_v * TIMESTEP / ddlat;
+        lng += wind_u * TIMESTEP / ddlng;
 
 		if (log_counter == LOG_DECIMATE) {
             write_position(lat, lng, alt, timestamp);
@@ -58,7 +79,6 @@ int run_model(wind_file_cache_t* cache, float initial_lat, float initial_lng, fl
         
         log_counter++;
         timestamp += TIMESTEP;
-
 	}
 
     return 1;
