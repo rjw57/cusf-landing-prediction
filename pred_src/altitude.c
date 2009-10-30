@@ -18,38 +18,48 @@
 #include "altitude.h"
 #include "run_model.h"
 
-float burst_altitude, ascent_rate, drag_coeff;
-int descent_mode;
+typedef struct altitude_model_s altitude_model_t;
+struct altitude_model_s
+{
+    float   burst_altitude;
+    float   ascent_rate;
+    float   drag_coeff;
+    int     descent_mode;
+
+    float   initial_alt;
+    int     burst_time;
+};
+
+static altitude_model_t _alt_singleton;
 
 int init_altitude(int dec_mode, float burst_alt, float asc_rate, float drag_co) {
     // this function doesn't do anything much at the moment
     // but will prove useful in the future
     
-    burst_altitude = burst_alt;
-    ascent_rate = asc_rate;
-    drag_coeff = drag_co;
-    descent_mode = dec_mode;
+    _alt_singleton.burst_altitude = burst_alt;
+    _alt_singleton.ascent_rate = asc_rate;
+    _alt_singleton.drag_coeff = drag_co;
+    _alt_singleton.descent_mode = dec_mode;
     return 1;
 }
 
 int get_altitude(int time_into_flight, float* alt) {
     
-    static float initial_alt;
-    static int burst_time;
+    altitude_model_t* self = &(_alt_singleton);
     
     // TODO: this section needs some work to make it more flexible
     
     // time == 0 so setup initial altitude stuff
     if (time_into_flight == 0) {
-        initial_alt = *alt;
-        burst_time = (burst_altitude - initial_alt) / ascent_rate;
+        self->initial_alt = *alt;
+        self->burst_time = (self->burst_altitude - self->initial_alt) / self->ascent_rate;
     }
     
     // If we are not doing a descending mode sim then start going up
     // at out ascent rate. The ascent rate is constant to a good approximation.
-    if (descent_mode == DESCENT_MODE_NORMAL) 
-        if (time_into_flight <= burst_time) {
-            *alt = initial_alt + time_into_flight*ascent_rate;
+    if (self->descent_mode == DESCENT_MODE_NORMAL) 
+        if (time_into_flight <= self->burst_time) {
+            *alt = self->initial_alt + time_into_flight*self->ascent_rate;
             return 1;
         }
     
@@ -57,7 +67,7 @@ int get_altitude(int time_into_flight, float* alt) {
     // this is a pretty darn good approximation for high-ish drag e.g. under parachute
     // still converges to T.V. quickly (i.e. less than a minute) for low drag.
     // terminal velocity = -drag_coeff/sqrt(get_density(*alt));
-    *alt += TIMESTEP * -drag_coeff/sqrt(get_density(*alt));
+    *alt += TIMESTEP * -self->drag_coeff/sqrt(get_density(*alt));
     
     /*
     // Rob's method - is this just freefall until we reach terminal velocity?
