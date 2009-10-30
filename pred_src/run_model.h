@@ -15,10 +15,11 @@
 #define __RUN_MODEL_H__
 
 #include "wind_data.h"
+#include "wind_files.h"
 
 // run the model
 // remember to call init_altitude before calling run_model
-int run_model(float initial_lat, float initial_lng, float initial_alt, long int initial_timestamp);
+int run_model(wind_file_cache_t* cache, float initial_lat, float initial_lng, float initial_alt, long int initial_timestamp);
 
 #define TIMESTEP 1          // in seconds
 #define LOG_DECIMATE 50     // write entry to output files every x timesteps
@@ -30,7 +31,7 @@ int run_model(float initial_lat, float initial_lng, float initial_alt, long int 
 // get the wind values in the u and v directions at a point in space and time from the dataset data
 // we interpolate lat, lng, alt and time. The GRIB data only contains pressure levels so we first
 // determine which pressure levels straddle to our desired altitude and then interpolate between them
-int get_wind(float lat, float lng, float alt, long int timestamp, float* wind_v, float* wind_u, wind_data** data);
+int get_wind(wind_file_cache_t* cache, float lat, float lng, float alt, long int timestamp, float* wind_v, float* wind_u);
 // note: get_wind will likely call load_data and load a different tile into data, so just be careful that data could be pointing
 // somewhere else after running get_wind
 

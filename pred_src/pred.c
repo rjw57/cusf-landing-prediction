@@ -21,6 +21,7 @@
 #include "run_model.h"
 #include "pred.h"
 #include "altitude.h"
+#include "wind_files.h"
 
 FILE* output;
 FILE* kml_file;
@@ -36,6 +37,8 @@ int main(int argc, const char *argv[]) {
     float burst_alt, ascent_rate, drag_coeff;
     int descent_mode;
     char* endptr;       // used to check for errors on strtod calls 
+    
+    wind_file_cache_t* file_cache;
     
     // configure command-line options parsing
     void *options = gopt_sort(&argc, argv, gopt_start(
@@ -116,6 +119,9 @@ int main(int argc, const char *argv[]) {
 
     // release gopt data, 
     gopt_free(options);
+
+    // populate wind data file cache
+    file_cache = wind_file_cache_new(data_dir);
     
     // write KML header
     if (kml_file)
@@ -170,7 +176,7 @@ int main(int argc, const char *argv[]) {
         fprintf(stderr, "ERROR: error initialising altitude profile\n");
         exit(1);
     }
-    if (!run_model(initial_lat, initial_lng, initial_alt, initial_timestamp)) {
+    if (!run_model(file_cache, initial_lat, initial_lng, initial_alt, initial_timestamp)) {
         fprintf(stderr, "ERROR: error during model run!\n");
         exit(1);
     }
@@ -181,6 +187,9 @@ int main(int argc, const char *argv[]) {
         fclose(kml_file);
     }
     fclose(output);
+
+    // release the file cache resources.
+    wind_file_cache_free(file_cache);
 
     return 0;
 }
