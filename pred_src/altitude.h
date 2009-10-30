@@ -47,10 +47,5 @@ int                  altitude_model_get_altitude
 
 #define G 9.8
 
-// get density of atmosphere at a given altitude
-// uses NASA model from http://www.grc.nasa.gov/WWW/K-12/airplane/atmosmet.html
-// units of degrees celcius, metres, KPa and Kg/metre cubed
-float get_density(float altitude);
-
 #endif // __ALTITUDE_H__
 
