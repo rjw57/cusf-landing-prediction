@@ -528,8 +528,8 @@ wind_file_get_wind(wind_file_t* file, float lat, float lon, float height,
                 left_lon = file->axes[2]->values[left_lon_idx];
                 right_lon = file->axes[2]->values[right_lon_idx];
 
-                fprintf(stderr, "INFO: Moved to latitude/longitude cell (%f,%f)-(%f,%f)\n",
-                                left_lat, left_lon, right_lat, right_lon);
+//                fprintf(stderr, "INFO: Moved to latitude/longitude cell (%f,%f)-(%f,%f)\n",
+//                                left_lat, left_lon, right_lat, right_lon);
 
                 have_valid_latlon_cache = 1;
         }
@@ -651,9 +651,10 @@ wind_file_get_wind(wind_file_t* file, float lat, float lon, float height,
                         return;
                 }
 
-                fprintf(stderr, "INFO: Moved to pressure cell (%.fmb, %.fmb)\n", 
-                                file->axes[0]->values[left_pr_idx],
-                                file->axes[0]->values[right_pr_idx]);
+//                fprintf(stderr, "INFO: Moved to pressure cell (%.fmb, %.fmb)\n", 
+//                                file->axes[0]->values[left_pr_idx],
+//                                file->axes[0]->values[right_pr_idx]);
+
                 have_valid_pressure_cache = 1;
         }
 
