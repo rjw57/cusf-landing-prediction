@@ -95,13 +95,30 @@ int get_wind(wind_file_cache_t* cache, float lat, float lng, float alt, long int
     {
         if((loaded_cache_entries[i] != found_entries[i]) || !loaded_files[i])
         {
-            if(loaded_files[i]) 
+            // Check to see if any of the other loaded enties are useful first
+            int j;
+            for(j=0; j<2; ++j) 
             {
-                wind_file_free(loaded_files[i]);
+                if(loaded_cache_entries[j] == found_entries[i]) 
+                {
+                    if(loaded_files[i]) 
+                    {
+                        wind_file_free(loaded_files[i]);
+                    }
+                    loaded_files[i] = loaded_files[j];
+                    loaded_files[j] = NULL;
+                    loaded_cache_entries[i] = loaded_cache_entries[j];
+                    loaded_cache_entries[j] = NULL;
+                }
             }
-            loaded_cache_entries[i] = found_entries[i];
-            loaded_files[i] = wind_file_new(
-                    wind_file_cache_entry_file_path(loaded_cache_entries[i]));
+
+            // If we could still not find a loaded file, actually load one.
+            if(loaded_cache_entries[i] != found_entries[i])
+            {
+                loaded_cache_entries[i] = found_entries[i];
+                loaded_files[i] = wind_file_new(
+                        wind_file_cache_entry_file_path(loaded_cache_entries[i]));
+            }
         }
     }
 
