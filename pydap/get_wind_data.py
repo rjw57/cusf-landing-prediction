@@ -24,7 +24,7 @@ def main():
     parser = optparse.OptionParser()
     parser.add_option('-t', '--timestamp', dest='timestamp',
         help='search for dataset covering the POSIX timestamp TIME \t[default: now]', 
-        metavar='TIME',
+        metavar='TIME', type='int',
         default=calendar.timegm(datetime.datetime.utcnow().timetuple()))
     parser.add_option('-o', '--output', dest='output',
         help='file to write output to with \'%(VAR)\' replaced with the the value of VAR [default: %default]',
