@@ -171,7 +171,7 @@ def write_file(output_format, data, window, mintime, maxtime):
                         enumerate(hgtprs.maps['lon']))
 
     # Filter the latitudes we're actually going to use.
-    latitudes = filter(lambda x: math.abs(x[1] - window[0]) <= window[1] ,
+    latitudes = filter(lambda x: math.fabs(x[1] - window[0]) <= window[1] ,
                         enumerate(hgtprs.maps['lat']))
 
     log.debug('Using longitudes: %s' % (map(lambda x: x[1], longitudes),))
