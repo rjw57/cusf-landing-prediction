@@ -1,10 +1,13 @@
 #!/usr/bin/env python
 
 # Modules from the Python standard library.
-import datetime, math, sys, logging, calendar, optparse
+import datetime, math, sys, os, logging, calendar, optparse
 
 # We use Pydap from http://pydap.org/.
-import pydap.exceptions, pydap.client
+import pydap.exceptions, pydap.client, pydap.lib
+
+# Attempt to cache the downloaded data.
+pydap.lib.CACHE = os.path.dirname(__file__) + '/pydap-cache/'
 
 # Output logger format
 log = logging.getLogger('main')
@@ -82,6 +85,8 @@ def main():
         log.setLevel(logging.INFO)
     if options.verbose > 1:
         log.setLevel(logging.DEBUG)
+
+    log.debug('Using cache directory: %s' % pydap.lib.CACHE)
 
     timestamp_to_find = options.timestamp
     time_to_find = datetime.datetime.utcfromtimestamp(timestamp_to_find)
@@ -164,6 +169,10 @@ def write_file(output_format, data, window, mintime, maxtime):
     # Filter the longitudes we're actually going to use.
     longitudes = filter(lambda x: longitude_distance(x[1], window[2]) <= window[3] ,
                         enumerate(hgtprs.maps['lon']))
+
+    # Filter the latitudes we're actually going to use.
+    latitudes = filter(lambda x: math.abs(x[1] - window[0]) <= window[1] ,
+                        enumerate(hgtprs.maps['lat']))
 
     log.debug('Using longitudes: %s' % (map(lambda x: x[1], longitudes),))
 
