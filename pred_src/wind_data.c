@@ -19,6 +19,7 @@
 #include "altitude.h"
 #include "wind_data.h"
 #include "run_model.h"
+#include "getline.h"
 
 extern char* data_dir;
 extern int verbosity;

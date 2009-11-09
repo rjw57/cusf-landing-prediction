@@ -9,7 +9,9 @@ PRED_OBJECTS = \
 	pred_src/altitude.o \
 	pred_src/wind_files.o \
 	pred_src/wind_file.o \
-	pred_src/wind_data.o
+	pred_src/wind_data.o \
+	pred_src/getline.o \
+	pred_src/getdelim.o 
 
 PRED_EXECUTABLE=pred
 

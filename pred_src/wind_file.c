@@ -17,6 +17,8 @@
 #include <assert.h>
 #include <math.h>
 
+#include "getline.h"
+
 extern int verbosity;
 
 typedef struct wind_file_axis_s wind_file_axis_t;
