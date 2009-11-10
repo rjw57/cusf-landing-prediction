@@ -85,6 +85,10 @@ def main():
         log.setLevel(logging.INFO)
     if options.verbose > 1:
         log.setLevel(logging.DEBUG)
+    if options.verbose > 2:
+        logging.basicConfig(level=logging.INFO)
+    if options.verbose > 3:
+        logging.basicConfig(level=logging.DEBUG)
 
     log.debug('Using cache directory: %s' % pydap.lib.CACHE)
 
