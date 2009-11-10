@@ -170,6 +170,14 @@ def write_file(output_format, data, window, mintime, maxtime):
     end_time = max(times)
     log.info('Downloading from %s to %s.' % (start_time.ctime(), end_time.ctime()))
 
+    # Filter the longitudes we're actually going to use.
+    longitudes = filter(lambda x: longitude_distance(x[1], window[2]) <= window[3] ,
+                        enumerate(hgtprs_global.maps['lon']))
+
+    # Filter the latitudes we're actually going to use.
+    latitudes = filter(lambda x: math.fabs(x[1] - window[0]) <= window[1] ,
+                        enumerate(hgtprs_global.maps['lat']))
+
     # Write one file for each time index.
     for timeidx, time in enumerate(hgtprs_global.maps['time']):
         timestamp = datetime_to_posix(timestamp_to_datetime(time))
@@ -186,17 +194,25 @@ def write_file(output_format, data, window, mintime, maxtime):
             # Check the dimensions are what we expect.
             assert(grid.dimensions == ('time', 'lev', 'lat', 'lon'))
 
-            # Download the data. Unfortunately, OpeNDAP only supports remote access of
-            # contiguous regions. Since the longitude data wraps, we may require two 
-            # windows. The 'right' way to fix this is to download a 'left' and 'right' window
-            # and munge them together. In terms of download speed, however, the overhead of 
-            # downloading is so great that it is quicker to download all the longitude 
-            # data in our slice and do the munging afterwards.
-            selection = grid[\
-                timeidx,
-                :, \
-                (grid.lat >= (window[0]-window[1])) & (grid.lat <= (window[0]+window[1])), \
-                : ]
+            # See if the longitude ragion wraps...
+            if (longitudes[0][0] == 0) & (longitudes[-1][0] == hgtprs_global.maps['lat'].shape[0]-1):
+                # Download the data. Unfortunately, OpeNDAP only supports remote access of
+                # contiguous regions. Since the longitude data wraps, we may require two 
+                # windows. The 'right' way to fix this is to download a 'left' and 'right' window
+                # and munge them together. In terms of download speed, however, the overhead of 
+                # downloading is so great that it is quicker to download all the longitude 
+                # data in our slice and do the munging afterwards.
+                selection = grid[\
+                    timeidx,
+                    :, \
+                    latitudes[0][0]:(latitudes[-1][0]+1),
+                    : ]
+            else:
+                selection = grid[\
+                    timeidx,
+                    :, \
+                    latitudes[0][0]:(latitudes[-1][0]+1),
+                    longitudes[0][0]:(longitudes[-1][0]+1) ]
 
             # Cache the downloaded data for later
             downloaded_data[var] = selection
@@ -216,14 +232,6 @@ def write_file(output_format, data, window, mintime, maxtime):
         hgtprs = downloaded_data['hgtprs']
         ugrdprs = downloaded_data['ugrdprs']
         vgrdprs = downloaded_data['vgrdprs']
-
-        # Filter the longitudes we're actually going to use.
-        longitudes = filter(lambda x: longitude_distance(x[1], window[2]) <= window[3] ,
-                            enumerate(hgtprs.maps['lon']))
-
-        # Filter the latitudes we're actually going to use.
-        latitudes = filter(lambda x: math.fabs(x[1] - window[0]) <= window[1] ,
-                            enumerate(hgtprs.maps['lat']))
 
         log.debug('Using longitudes: %s' % (map(lambda x: x[1], longitudes),))
 
@@ -251,15 +259,15 @@ def write_file(output_format, data, window, mintime, maxtime):
         output.write(str(hgtprs.maps['lev'].shape[0]) + '\n')
         output.write(','.join(map(str,hgtprs.maps['lev'][:])) + '\n')
         output.write('# axis 2: latitudes\n')
-        output.write(str(hgtprs.maps['lat'].shape[0]) + '\n')
-        output.write(','.join(map(str,hgtprs.maps['lat'][:])) + '\n')
+        output.write(str(len(latitudes)) + '\n')
+        output.write(','.join(map(lambda x: str(x[1]), latitudes)) + '\n')
         output.write('# axis 3: longitudes\n')
         output.write(str(len(longitudes)) + '\n')
         output.write(','.join(map(lambda x: str(x[1]), longitudes)) + '\n')
 
         # Write the number of lines of data.
         output.write('# number of lines of data\n')
-        output.write('%s\n' % (hgtprs.shape[0] * hgtprs.shape[1] * len(longitudes)))
+        output.write('%s\n' % (hgtprs.shape[0] * len(latitudes) * len(longitudes)))
 
         # Write the number of components in each data line.
         output.write('# data line component count\n')
@@ -272,7 +280,9 @@ def write_file(output_format, data, window, mintime, maxtime):
                      'v-component wind [m/s]\n')
         for pressureidx, pressure in enumerate(hgtprs.maps['lev']):
             for latidx, latitude in enumerate(hgtprs.maps['lat']):
-                for lonidx, longitude in longitudes:
+                for lonidx, longitude in enumerate(hgtprs.maps['lon']):
+                    if longitude_distance(longitude, window[2]) > window[3]:
+                        continue
                     record = ( hgtprs.array[pressureidx,latidx,lonidx], \
                                ugrdprs.array[pressureidx,latidx,lonidx], \
                                vgrdprs.array[pressureidx,latidx,lonidx] )
