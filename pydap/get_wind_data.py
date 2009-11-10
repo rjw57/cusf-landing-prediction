@@ -42,23 +42,35 @@ def main():
         type='int', default=9)
 
     group = optparse.OptionGroup(parser, "Location specifiers",
-        "Use these options to specify a particular window of data to download.")
+        "Use these options to specify a particular tile of data to download.")
     group.add_option('--lat', dest='lat',
-        help='window centre latitude in range (-90,90) degrees north [default: %default]',
+        help='tile centre latitude in range (-90,90) degrees north [default: %default]',
         metavar='DEGREES',
         type='float', default=52)
     group.add_option('--lon', dest='lon',
-        help='window centre longitude in degrees east [default: %default]',
+        help='tile centre longitude in degrees east [default: %default]',
         metavar='DEGREES',
         type='float', default=0)
     group.add_option('--latdelta', dest='latdelta',
-        help='window radius in latitude in degrees [default: %default]',
+        help='tile radius in latitude in degrees [default: %default]',
         metavar='DEGREES',
-        type='float', default=6)
+        type='float', default=5)
     group.add_option('--londelta', dest='londelta',
-        help='window radius in longitude in degrees [default: %default]',
+        help='tile radius in longitude in degrees [default: %default]',
         metavar='DEGREES',
-        type='float', default=6)
+        type='float', default=5)
+    parser.add_option_group(group)
+
+    group = optparse.OptionGroup(parser, "Tile specifiers",
+        "Use these options to specify how many tiles to download.")
+    group.add_option('--lattiles', dest='lattiles',
+        metavar='TILES',
+        help='number of tiles along latitude to download [default: %default]',
+        type='int', default=1)
+    group.add_option('--lontiles', dest='lontiles',
+        metavar='TILES',
+        help='number of tiles along longitude to download [default: %default]',
+        type='int', default=1)
     parser.add_option_group(group)
 
     (options, args) = parser.parse_args()
@@ -114,12 +126,16 @@ def main():
     log.info('      Latitude: %s -> %s' % (min(dataset.lat), max(dataset.lat)))
     log.info('     Longitude: %s -> %s' % (min(dataset.lon), max(dataset.lon)))
 
-    window = (options.lat, options.latdelta, options.lon, options.londelta)
+    for dlat in range(0,options.lattiles):
+        for dlon in range(0,options.lontiles):
+            window = ( \
+                options.lat + dlat*options.latdelta*2, options.latdelta, \
+                options.lon + dlon*options.londelta*2, options.londelta)
 
-    write_file(options.output, dataset, \
-        window, \
-        time_to_find - datetime.timedelta(hours=options.past), \
-        time_to_find + datetime.timedelta(hours=options.future))
+            write_file(options.output, dataset, \
+                window, \
+                time_to_find - datetime.timedelta(hours=options.past), \
+                time_to_find + datetime.timedelta(hours=options.future))
 
     purge_cache()
 
