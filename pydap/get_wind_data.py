@@ -121,68 +121,95 @@ def main():
         time_to_find - datetime.timedelta(hours=options.past), \
         time_to_find + datetime.timedelta(hours=options.future))
 
+    purge_cache()
+
+def purge_cache():
+    """
+    Purge the pydap cache (if set).
+    """
+
+    if pydap.lib.CACHE is None:
+        return
+
+    log.info('Purging PyDAP cache.')
+
+    for file in os.listdir(pydap.lib.CACHE):
+        log.debug('   Deleting %s.' % file)
+        os.remove(pydap.lib.CACHE + file)
+
 def write_file(output_format, data, window, mintime, maxtime):
     log.info('Downloading data in window (lat, lon) = (%s +/- %s, %s +/- %s).' % window)
-    downloaded_data = { }
-    for var in ('hgtprs', 'ugrdprs', 'vgrdprs'):
-        grid = data[var]
-        log.info('Processing variable \'%s\' with shape %s...' % (var, grid.shape))
 
-        # Check the dimensions are what we expect.
-        assert(grid.dimensions == ('time', 'lev', 'lat', 'lon'))
+    # Firstly, get the hgtprs variable to extract the times we're going to use.
+    hgtprs_global = data['hgtprs']
 
-        # Work out what times we want to download
-        times = filter(lambda x: (x >= mintime) & (x <= maxtime),
-            map(timestamp_to_datetime, grid.maps['time']))
+    # Check the dimensions are what we expect.
+    assert(hgtprs_global.dimensions == ('time', 'lev', 'lat', 'lon'))
 
-        start_time = min(times)
-        end_time = max(times)
-        log.info('   Downloading from %s to %s.' % (start_time.ctime(), end_time.ctime()))
+    # Work out what times we want to download
+    times = filter(lambda x: (x >= mintime) & (x <= maxtime),
+        map(timestamp_to_datetime, hgtprs_global.maps['time']))
 
-        # Download the data. Unfortunately, OpeNDAP only supports remote access of
-        # contiguous regions. Since the longitude data wraps, we may require two 
-        # windows. The 'right' way to fix this is to download a 'left' and 'right' window
-        # and munge them together. In terms of download speed, however, the overhead of 
-        # downloading is so great that it is quicker to download all the longitude 
-        # data in our slice and do the munging afterwards.
-        selection = grid[\
-            times.index(start_time):(times.index(end_time)+1), \
-            :, \
-            (grid.lat >= (window[0]-window[1])) & (grid.lat <= (window[0]+window[1])), \
-            : ]
-
-        # Cache the downloaded data for later
-        downloaded_data[var] = selection
-
-        log.info('   Downloaded data has shape %s...', selection.shape)
-        if len(selection.shape) != 4:
-            log.error('    Expected 4-d data. Perhaps your time window is too short?')
-            return
-
-    # Check all the downloaded data has the same shape
-    target_shape = downloaded_data['hgtprs']
-    assert( all( map( lambda x: x == target_shape, 
-        filter( lambda x: x.shape, downloaded_data.itervalues() ) ) ) )
-
-    log.info('Writing output...')
-
-    hgtprs = downloaded_data['hgtprs']
-    ugrdprs = downloaded_data['ugrdprs']
-    vgrdprs = downloaded_data['vgrdprs']
-
-    # Filter the longitudes we're actually going to use.
-    longitudes = filter(lambda x: longitude_distance(x[1], window[2]) <= window[3] ,
-                        enumerate(hgtprs.maps['lon']))
-
-    # Filter the latitudes we're actually going to use.
-    latitudes = filter(lambda x: math.fabs(x[1] - window[0]) <= window[1] ,
-                        enumerate(hgtprs.maps['lat']))
-
-    log.debug('Using longitudes: %s' % (map(lambda x: x[1], longitudes),))
+    start_time = min(times)
+    end_time = max(times)
+    log.info('Downloading from %s to %s.' % (start_time.ctime(), end_time.ctime()))
 
     # Write one file for each time index.
-    for timeidx, time in enumerate(hgtprs.maps['time']):
+    for timeidx, time in enumerate(hgtprs_global.maps['time']):
         timestamp = datetime_to_posix(timestamp_to_datetime(time))
+        if (timestamp < datetime_to_posix(start_time)) | (timestamp > datetime_to_posix(end_time)):
+            continue
+
+        log.info('Downloading data for %s.' % (timestamp_to_datetime(time).ctime()))
+
+        downloaded_data = { }
+        for var in ('hgtprs', 'ugrdprs', 'vgrdprs'):
+            grid = data[var]
+            log.info('Processing variable \'%s\' with shape %s...' % (var, grid.shape))
+
+            # Check the dimensions are what we expect.
+            assert(grid.dimensions == ('time', 'lev', 'lat', 'lon'))
+
+            # Download the data. Unfortunately, OpeNDAP only supports remote access of
+            # contiguous regions. Since the longitude data wraps, we may require two 
+            # windows. The 'right' way to fix this is to download a 'left' and 'right' window
+            # and munge them together. In terms of download speed, however, the overhead of 
+            # downloading is so great that it is quicker to download all the longitude 
+            # data in our slice and do the munging afterwards.
+            selection = grid[\
+                timeidx,
+                :, \
+                (grid.lat >= (window[0]-window[1])) & (grid.lat <= (window[0]+window[1])), \
+                : ]
+
+            # Cache the downloaded data for later
+            downloaded_data[var] = selection
+
+            log.info('   Downloaded data has shape %s...', selection.shape)
+            if len(selection.shape) != 3:
+                log.error('    Expected 3-d data.')
+                return
+
+        # Check all the downloaded data has the same shape
+        target_shape = downloaded_data['hgtprs']
+        assert( all( map( lambda x: x == target_shape, 
+            filter( lambda x: x.shape, downloaded_data.itervalues() ) ) ) )
+
+        log.info('Writing output...')
+
+        hgtprs = downloaded_data['hgtprs']
+        ugrdprs = downloaded_data['ugrdprs']
+        vgrdprs = downloaded_data['vgrdprs']
+
+        # Filter the longitudes we're actually going to use.
+        longitudes = filter(lambda x: longitude_distance(x[1], window[2]) <= window[3] ,
+                            enumerate(hgtprs.maps['lon']))
+
+        # Filter the latitudes we're actually going to use.
+        latitudes = filter(lambda x: math.fabs(x[1] - window[0]) <= window[1] ,
+                            enumerate(hgtprs.maps['lat']))
+
+        log.debug('Using longitudes: %s' % (map(lambda x: x[1], longitudes),))
 
         output_filename = output_format
         output_filename = output_filename.replace('%(time)', str(timestamp))
@@ -216,7 +243,7 @@ def write_file(output_format, data, window, mintime, maxtime):
 
         # Write the number of lines of data.
         output.write('# number of lines of data\n')
-        output.write('%s\n' % (hgtprs.shape[1] * hgtprs.shape[2] * len(longitudes)))
+        output.write('%s\n' % (hgtprs.shape[0] * hgtprs.shape[1] * len(longitudes)))
 
         # Write the number of components in each data line.
         output.write('# data line component count\n')
@@ -230,9 +257,9 @@ def write_file(output_format, data, window, mintime, maxtime):
         for pressureidx, pressure in enumerate(hgtprs.maps['lev']):
             for latidx, latitude in enumerate(hgtprs.maps['lat']):
                 for lonidx, longitude in longitudes:
-                    record = ( hgtprs.array[timeidx,pressureidx,latidx,lonidx], \
-                               ugrdprs.array[timeidx,pressureidx,latidx,lonidx], \
-                               vgrdprs.array[timeidx,pressureidx,latidx,lonidx] )
+                    record = ( hgtprs.array[pressureidx,latidx,lonidx], \
+                               ugrdprs.array[pressureidx,latidx,lonidx], \
+                               vgrdprs.array[pressureidx,latidx,lonidx] )
                     output.write(','.join(map(str,record)) + '\n')
 
 def canonicalise_longitude(lon):
