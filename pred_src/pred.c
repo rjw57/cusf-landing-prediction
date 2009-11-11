@@ -17,6 +17,8 @@
 #include <time.h>
 #include <errno.h>
 
+#include "ini/iniparser.h"
+
 #include "gopt.h"
 #include "run_model.h"
 #include "pred.h"
@@ -39,6 +41,7 @@ int main(int argc, const char *argv[]) {
     char* endptr;       // used to check for errors on strtod calls 
     
     wind_file_cache_t* file_cache;
+    dictionary*        scenario = NULL;
     
     // configure command-line options parsing
     void *options = gopt_sort(&argc, argv, gopt_start(
@@ -55,7 +58,7 @@ int main(int argc, const char *argv[]) {
     if (gopt(options, 'h')) {
         // Help!
         // Print usage information
-        printf("Usage: %s [options] initial_lat initial_lon initial_alt drag_coeff [burst_alt ascent_rate]\n", argv[0]);
+        printf("Usage: %s [options] [scenario file]\n", argv[0]);
         printf("Options:\n\n");
         printf(" -h --help               Display this information.\n");
         printf(" --version               Display version information.\n");
@@ -68,6 +71,8 @@ int main(int argc, const char *argv[]) {
         printf(" -d --descending         We are in the descent phase of the flight, i.e. after\n");
         printf("                           burst or cutdown. burst_alt and ascent_rate ignored.\n");
         printf(" -i --data_dir <dir>     Input directory for wind data, defaults to current dir.\n\n");
+        printf("The scenario file is an INI-like file giving the launch scenario. If it is\n");
+        printf("omitted, the scenario is read from standard input.\n");
       exit(0);
     }
 
@@ -127,48 +132,54 @@ int main(int argc, const char *argv[]) {
     if (kml_file)
         start_kml();
 
-    // read in flight parameters, 6 usually, only 4 in descent mode
-    if (descent_mode) {
-        if ((argc-1) < 4) {
-            fprintf(stderr, "ERROR: too few parameters (descent mode expects 4), run %s -h for usage information\n", argv[0]);
-            exit(1);
+    // read in flight parameters
+    if(argc > 2) {
+        fprintf(stderr, "ERROR: too many parameters, run %s -h for usage information\n", argv[0]);
+        exit(1);
+    }
+
+    if(argc == 1) {
+        fprintf(stderr, "ERROR: scenarios from stdin not yet supported, sorry.\n");
+        exit(1);
+    }
+
+    scenario = iniparser_load(argv[1]);
+    if(!scenario) {
+        fprintf(stderr, "ERROR: could not parse scanario file.\n");
+        exit(1);
+    }
+
+    if(verbosity > 1) {
+        fprintf(stderr, "INFO: Parsed scenario file:\n");
+        iniparser_dump_ini(scenario, stderr);
+    }
+
+    // The observant amongst you will notice that there are default values for
+    // *all* keys. This information should not be spread around too well.
+    // Unfortunately, this means we lack some error checking.
+
+    initial_lat = iniparser_getdouble(scenario, "launch-site:latitude", 0.0);
+    initial_lng = iniparser_getdouble(scenario, "launch-site:longitude", 0.0);
+    initial_alt = iniparser_getdouble(scenario, "launch-site:altitude", 0.0);
+
+    ascent_rate = iniparser_getdouble(scenario, "altitude-model:ascent-rate", 1.0);
+
+    // The 1.1045 comes from a magic constant buried in
+    // ~cuspaceflight/public_html/predict/index.php.
+    drag_coeff = iniparser_getdouble(scenario, "altitude-model:descent-rate", 1.0) * 1.1045;
+
+    burst_alt = iniparser_getdouble(scenario, "altitude-model:burst-altitude", 1.0);
+
+    if(verbosity > 0) {
+        fprintf(stderr, "INFO: Scenario loaded:\n");
+        fprintf(stderr, "    - Initial latitude  : %lf deg N\n", initial_lat);
+        fprintf(stderr, "    - Initial longitude : %lf deg E\n", initial_lng);
+        fprintf(stderr, "    - Initial altitude  : %lf m above sea level\n", initial_alt);
+        fprintf(stderr, "    - Drag coeff.       : %lf\n", drag_coeff);
+        if(!descent_mode) {
+            fprintf(stderr, "    - Ascent rate       : %lf m/s\n", ascent_rate);
+            fprintf(stderr, "    - Burst alt.        : %lf m\n", burst_alt);
         }
-    } else {
-        if ((argc-1) < 6) {
-            fprintf(stderr, "ERROR: too few parameters (normal mode expects 6), run %s -h for usage information\n", argv[0]);
-            exit(1);
-        } else {
-            burst_alt = strtod(argv[5], &endptr);
-            if (endptr == argv[5] || burst_alt <= 0) {
-                fprintf(stderr, "ERROR: %s: invalid burst altitude\n", argv[5]);
-                exit(1);
-            }
-            ascent_rate = strtod(argv[6], &endptr);
-            if (endptr == argv[6] || ascent_rate <= 0) {
-                fprintf(stderr, "ERROR: %s: invalid ascent rate\n", argv[6]);
-                exit(1);
-            }
-        }
-    }
-    initial_lat = strtod(argv[1], &endptr);
-    if (endptr == argv[1]) {
-        fprintf(stderr, "ERROR: %s: invalid initial latitude\n", argv[1]);
-        exit(1);
-    }
-    initial_lng = strtod(argv[2], &endptr);
-    if (endptr == argv[2]) {
-        fprintf(stderr, "ERROR: %s: invalid initial longitude\n", argv[2]);
-        exit(1);
-    }
-    initial_alt = strtod(argv[3], &endptr);
-    if (endptr == argv[3] || initial_alt < 0) {
-        fprintf(stderr, "ERROR: %s: invalid initial altitude\n", argv[3]);
-        exit(1);
-    }
-    drag_coeff = strtod(argv[4], &endptr);
-    if (endptr == argv[4] || drag_coeff <= 0) {
-        fprintf(stderr, "ERROR: %s: invalid drag coefficient\n", argv[4]);
-        exit(1);
     }
     
     {
@@ -198,6 +209,9 @@ int main(int argc, const char *argv[]) {
 
     // release the file cache resources.
     wind_file_cache_free(file_cache);
+
+    // selease the scenario
+    iniparser_freedict(scenario);
 
     return 0;
 }

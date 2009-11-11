@@ -11,7 +11,9 @@ PRED_OBJECTS = \
 	pred_src/wind_file.o \
 	pred_src/wind_data.o \
 	pred_src/getline.o \
-	pred_src/getdelim.o 
+	pred_src/getdelim.o \
+	pred_src/ini/dictionary.o \
+	pred_src/ini/iniparser.o 
 
 PRED_EXECUTABLE=pred
 
