@@ -18,9 +18,9 @@
 #include <errno.h>
 
 #include "ini/iniparser.h"
+#include "util/gopt.h"
 #include "wind/wind_file_cache.h"
 
-#include "gopt.h"
 #include "run_model.h"
 #include "pred.h"
 #include "altitude.h"

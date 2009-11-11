@@ -4,13 +4,13 @@ CFLAGS=-Wall
 
 PRED_OBJECTS = \
 	pred_src/pred.o                         \
-	pred_src/gopt.o                         \
 	pred_src/run_model.o                    \
 	pred_src/altitude.o                     \
 	pred_src/ini/dictionary.o               \
 	pred_src/ini/iniparser.o                \
 	pred_src/util/getline.o                 \
 	pred_src/util/getdelim.o                \
+	pred_src/util/gopt.o                    \
 	pred_src/wind/wind_file_cache.o         \
 	pred_src/wind/wind_file.o 
 
