@@ -34,7 +34,9 @@ void                    wind_file_get_wind     (wind_file_t        *file,
                                                 float               lon,
                                                 float               height, 
                                                 float              *windu,
-                                                float              *windv);
+                                                float              *windv,
+                                                float              *winduvar,
+                                                float              *windvvar);
 
 #ifdef __cplusplus
 }

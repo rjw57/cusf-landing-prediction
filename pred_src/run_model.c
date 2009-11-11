@@ -120,6 +120,7 @@ int run_model(wind_file_cache_t* cache, altitude_model_t* alt_model,
 int get_wind(wind_file_cache_t* cache, float lat, float lng, float alt, long int timestamp, float* wind_v, float* wind_u) {
     int i;
     float lambda, wu_l, wv_l, wu_h, wv_h;
+    float wuvar_l, wvvar_l, wuvar_h, wvvar_h, wuvar, wvvar;
     wind_file_cache_entry_t* found_entries[] = { NULL, NULL };
     unsigned int earlier_ts, later_ts;
 
@@ -189,11 +190,14 @@ int get_wind(wind_file_cache_t* cache, float lat, float lng, float alt, long int
     else
         lambda = 0.5f;
 
-    wind_file_get_wind(loaded_files[0], lat, lng, alt, &wu_l, &wv_l);
-    wind_file_get_wind(loaded_files[1], lat, lng, alt, &wu_h, &wv_h);
+    wind_file_get_wind(loaded_files[0], lat, lng, alt, &wu_l, &wv_l, &wuvar_l, &wvvar_l);
+    wind_file_get_wind(loaded_files[1], lat, lng, alt, &wu_h, &wv_h, &wuvar_h, &wvvar_h);
 
     *wind_u = lambda * wu_h + (1.f-lambda) * wu_l;
     *wind_v = lambda * wv_h + (1.f-lambda) * wv_l;
+
+    wuvar = (lambda * wuvar_h + (1.f-lambda) * wuvar_l);
+    wvvar = (lambda * wvvar_h + (1.f-lambda) * wvvar_l);
 
     return 1;
 }

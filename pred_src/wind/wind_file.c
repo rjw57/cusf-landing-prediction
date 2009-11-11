@@ -475,7 +475,7 @@ _bilinear_interpolate(float ll, float lr, float rl, float rr, float lambda1, flo
 
 void
 wind_file_get_wind(wind_file_t* file, float lat, float lon, float height, 
-                float* windu, float *windv)
+                float* windu, float *windv, float *uvar, float *vvar)
 {
         // we use static variables to 'cache' the last left and right lat/longs
         // and heights so that we can avoid searching the axes if necessary
@@ -698,10 +698,15 @@ wind_file_get_wind(wind_file_t* file, float lat, float lon, float height,
         // latitude, longitude and pressure boundaries of our data cell along
         // with normalised co-ordinates within it. We can now actually find
         // some data...
+        //
+        // We compute the lerped u and v along with the lerped u and v squared
+        // to calculate the variance.
         {
                 float llu, lru, rlu, rru;
                 float llv, lrv, rlv, rrv;
+
                 float lowu, lowv, highu, highv;
+                float lowusq, lowvsq, highusq, highvsq;
 
                 // let's get the wind u and v for the lower lat/lon cell
                 _wind_file_get_wind_raw(file, 
@@ -712,8 +717,14 @@ wind_file_get_wind(wind_file_t* file, float lat, float lon, float height,
                                 right_lat_idx, left_lon_idx, left_pr_idx, &rlu, &rlv);
                 _wind_file_get_wind_raw(file, 
                                 right_lat_idx, right_lon_idx, left_pr_idx, &rru, &rrv);
+
                 lowu = _bilinear_interpolate(llu, lru, rlu, rru, lat_lambda, lon_lambda);
                 lowv = _bilinear_interpolate(llv, lrv, rlv, rrv, lat_lambda, lon_lambda);
+
+                lowusq = _bilinear_interpolate(llu*llu, lru*lru, rlu*rlu, rru*rru,
+                                lat_lambda, lon_lambda);
+                lowvsq = _bilinear_interpolate(llv*llv, lrv*lrv, rlv*rlv, rrv*rrv, 
+                                lat_lambda, lon_lambda);
                 
                 // let's get the wind u and v for the upper lat/lon cell
                 _wind_file_get_wind_raw(file, 
@@ -724,11 +735,28 @@ wind_file_get_wind(wind_file_t* file, float lat, float lon, float height,
                                 right_lat_idx, left_lon_idx, right_pr_idx, &rlu, &rlv);
                 _wind_file_get_wind_raw(file, 
                                 right_lat_idx, right_lon_idx, right_pr_idx, &rru, &rrv);
+
                 highu = _bilinear_interpolate(llu, lru, rlu, rru, lat_lambda, lon_lambda);
                 highv = _bilinear_interpolate(llv, lrv, rlv, rrv, lat_lambda, lon_lambda);
 
+                highusq = _bilinear_interpolate(llu*llu, lru*lru, rlu*rlu, rru*rru,
+                                lat_lambda, lon_lambda);
+                highvsq = _bilinear_interpolate(llv*llv, lrv*lrv, rlv*rlv, rrv*rrv, 
+                                lat_lambda, lon_lambda);
+
                 *windu = _lerp(lowu, highu, pr_lambda);
                 *windv = _lerp(lowv, highv, pr_lambda);
+
+                // Calculate the variance by making use of the fact that the lerping is
+                // effectively a weighted mean or expectation and that
+                // var = E[X^2] - E[X]^2.
+                //
+                // In effect this calculates the instantaneous variance by considering the
+                // weighted contributions from the cube surrounding the point in question.
+                // This is highly cunning and, on the face of it, not entirely wrong.
+
+                *uvar = _lerp(lowusq, highusq, pr_lambda) - (*windu * *windu);
+                *vvar = _lerp(lowvsq, highvsq, pr_lambda) - (*windv * *windv);
         }
 }
 
