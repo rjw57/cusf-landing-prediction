@@ -16,7 +16,7 @@ PRED_OBJECTS = \
 
 PRED_EXECUTABLE=pred
 
-all: $(PRED_EXECUTABLE)
+all: $(PRED_EXECUTABLE) test
 
 $(PRED_EXECUTABLE): $(PRED_OBJECTS)
 	$(CC) $(LDFLAGS) $(PRED_OBJECTS) -o $@
@@ -25,3 +25,6 @@ clean_pred:
 	rm -rf $(PRED_OBJECTS) $(PRED_EXECUTABLE)
 
 clean: clean_pred
+
+test: $(PRED_EXECUTABLE) test/scenario.ini
+	./$(PRED_EXECUTABLE) -v -i test/gfs -t 1257951600 test/scenario.ini > test/output.csv
