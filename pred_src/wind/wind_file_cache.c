@@ -177,9 +177,6 @@ wind_file_cache_new(const char *directory)
                 int filepath_len, parse_rv;
                 char* filepath = NULL;
 
-                float lat, latrad, lon, lonrad;
-                unsigned long timestamp;
-
                 // allocate the entry.
                 self->entries[i] = (struct wind_file_cache_entry_s*)malloc(sizeof(struct wind_file_cache_entry_s));
 

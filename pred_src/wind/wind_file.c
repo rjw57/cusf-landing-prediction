@@ -489,7 +489,7 @@ wind_file_get_wind(wind_file_t* file, float lat, float lon, float height,
         static float left_lat, right_lat;
         static float left_lon, right_lon;
 
-        int status, i;
+        int i;
         float left_height, right_height;
         float lat_lambda, lon_lambda, pr_lambda;
 
