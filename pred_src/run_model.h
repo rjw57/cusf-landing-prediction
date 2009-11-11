@@ -14,8 +14,7 @@
 #ifndef __RUN_MODEL_H__
 #define __RUN_MODEL_H__
 
-#include "wind_data.h"
-#include "wind_files.h"
+#include "wind/wind_file_cache.h"
 #include "altitude.h"
 
 // run the model

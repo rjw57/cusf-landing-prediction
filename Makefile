@@ -7,10 +7,10 @@ PRED_OBJECTS = \
 	pred_src/gopt.o \
 	pred_src/run_model.o \
 	pred_src/altitude.o \
-	pred_src/wind_files.o \
-	pred_src/wind_file.o \
 	pred_src/getline.o \
 	pred_src/getdelim.o \
+	pred_src/wind/wind_file_cache.o \
+	pred_src/wind/wind_file.o \
 	pred_src/ini/dictionary.o \
 	pred_src/ini/iniparser.o 
 

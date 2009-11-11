@@ -10,7 +10,7 @@
 // PARTICULAR PURPOSE.
 // --------------------------------------------------------------
 
-#include "wind_files.h"
+#include "wind_file_cache.h"
 
 #include <sys/types.h>
 #include <sys/stat.h>

@@ -14,8 +14,7 @@
 #include <math.h>
 #include <stdio.h>
 
-#include "wind_data.h"
-#include "wind_file.h"
+#include "wind/wind_file.h"
 #include "run_model.h"
 #include "pred.h"
 #include "altitude.h"

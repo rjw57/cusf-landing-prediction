@@ -17,7 +17,7 @@
 #include <assert.h>
 #include <math.h>
 
-#include "getline.h"
+#include "../getline.h"
 
 extern int verbosity;
 
