@@ -1,6 +1,6 @@
-
-LDFLAGS=-lm
-CFLAGS=-Wall
+PKG_CONFIG_PACKAGES=glib-2.0
+LDFLAGS=-lm `pkg-config ${PKG_CONFIG_PACKAGES} --libs`
+CFLAGS=-Wall `pkg-config ${PKG_CONFIG_PACKAGES} --cflags`
 
 PRED_OBJECTS = \
 	pred_src/pred.o                         \
@@ -11,6 +11,7 @@ PRED_OBJECTS = \
 	pred_src/util/getline.o                 \
 	pred_src/util/getdelim.o                \
 	pred_src/util/gopt.o                    \
+	pred_src/util/random.o                  \
 	pred_src/wind/wind_file_cache.o         \
 	pred_src/wind/wind_file.o 
 

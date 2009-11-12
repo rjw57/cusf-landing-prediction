@@ -15,6 +15,7 @@
 #include <stdio.h>
 
 #include "wind/wind_file.h"
+#include "util/random.h"
 #include "run_model.h"
 #include "pred.h"
 #include "altitude.h"
@@ -30,6 +31,7 @@ struct model_state_s
     float               lng;
     float               alt;
     altitude_model_t   *alt_model;
+    float               loglik;
 };
 
 // Get the distance (in metres) of one degree of latitude and one degree of
@@ -64,25 +66,32 @@ _advance_one_timestep(wind_file_cache_t* cache,
     for(i=0; i<n_states; ++i)
     {
         float ddlat, ddlng;
-        float wind_v, wind_u;
+        float wind_v, wind_u, wind_u_var, wind_v_var;
+        float u_samp, v_samp, u_lik, v_lik;
         model_state_t* state = &(states[i]);
 
         if(!altitude_model_get_altitude(state->alt_model, 
                                         timestamp - initial_timestamp, &state->alt))
             return 0;
 
-		if(!get_wind(cache, state->lat, state->lng, state->alt, timestamp, &wind_v, &wind_u)) {
-            fprintf(stderr, "ERROR: error getting wind data\n");
-			return 0;
-		}
+        if(!get_wind(cache, state->lat, state->lng, state->alt, timestamp, 
+                    &wind_v, &wind_u, &wind_u_var, &wind_v_var)) {
+                fprintf(stderr, "ERROR: error getting wind data\n");
+                return 0;
+        }
 
         _get_frame(state->lat, state->lng, state->alt, &ddlat, &ddlng);
 
         // NOTE: it this really the right thing to be doing? - think about what
         // happens near the poles
+    
+        u_samp = random_sample_normal(wind_u, wind_u_var, &u_lik);
+        v_samp = random_sample_normal(wind_v, wind_v_var, &v_lik);
 
-        state->lat += wind_v * delta_t / ddlat;
-        state->lng += wind_u * delta_t / ddlng;
+        state->lat += v_samp * delta_t / ddlat;
+        state->lng += u_samp * delta_t / ddlng;
+
+        state->loglik += u_lik + v_lik;
     }
 
     return 1;
@@ -98,29 +107,31 @@ int run_model(wind_file_cache_t* cache, altitude_model_t* alt_model,
     state.lat = initial_lat;
     state.lng = initial_lng;
     state.alt_model = alt_model;
+    state.loglik = 0.f;
 
     long int timestamp = initial_timestamp;
     
     int log_counter = 0; // only write position to output files every LOG_DECIMATE timesteps
     
-	while(_advance_one_timestep(cache, TIMESTEP, timestamp, initial_timestamp, 1, &state))
+    while(_advance_one_timestep(cache, TIMESTEP, timestamp, initial_timestamp, 1, &state))
     {
-		if (log_counter == LOG_DECIMATE) {
+        if (log_counter == LOG_DECIMATE) {
             write_position(state.lat, state.lng, state.alt, timestamp);
             log_counter = 0;
-		}
+        }
         log_counter++;
         timestamp += TIMESTEP;
-	}
+    }
 
     return 1;
 }
 
-
-int get_wind(wind_file_cache_t* cache, float lat, float lng, float alt, long int timestamp, float* wind_v, float* wind_u) {
+// vim:sw=4:ts=4:et:cindent
+int get_wind(wind_file_cache_t* cache, float lat, float lng, float alt, long int timestamp,
+        float* wind_v, float* wind_u, float *wind_u_var, float *wind_v_var) {
     int i;
     float lambda, wu_l, wv_l, wu_h, wv_h;
-    float wuvar_l, wvvar_l, wuvar_h, wvvar_h, wuvar, wvvar;
+    float wuvar_l, wvvar_l, wuvar_h, wvvar_h;
     wind_file_cache_entry_t* found_entries[] = { NULL, NULL };
     unsigned int earlier_ts, later_ts;
 
@@ -196,8 +207,8 @@ int get_wind(wind_file_cache_t* cache, float lat, float lng, float alt, long int
     *wind_u = lambda * wu_h + (1.f-lambda) * wu_l;
     *wind_v = lambda * wv_h + (1.f-lambda) * wv_l;
 
-    wuvar = (lambda * wuvar_h + (1.f-lambda) * wuvar_l);
-    wvvar = (lambda * wvvar_h + (1.f-lambda) * wvvar_l);
+    *wind_u_var = (lambda * wuvar_h + (1.f-lambda) * wuvar_l) - ((*wind_u)*(*wind_u));
+    *wind_v_var = (lambda * wvvar_h + (1.f-lambda) * wvvar_l) - ((*wind_v)*(*wind_v));
 
     return 1;
 }

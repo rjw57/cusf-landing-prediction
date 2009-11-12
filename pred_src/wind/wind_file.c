@@ -747,16 +747,17 @@ wind_file_get_wind(wind_file_t* file, float lat, float lon, float height,
                 *windu = _lerp(lowu, highu, pr_lambda);
                 *windv = _lerp(lowv, highv, pr_lambda);
 
-                // Calculate the variance by making use of the fact that the lerping is
-                // effectively a weighted mean or expectation and that
+                // Eventually we will calculate the variance by making use of
+                // the fact that the lerping is effectively a weighted mean or
+                // expectation and that
                 // var = E[X^2] - E[X]^2.
                 //
                 // In effect this calculates the instantaneous variance by considering the
                 // weighted contributions from the cube surrounding the point in question.
                 // This is highly cunning and, on the face of it, not entirely wrong.
 
-                *uvar = _lerp(lowusq, highusq, pr_lambda) - (*windu * *windu);
-                *vvar = _lerp(lowvsq, highvsq, pr_lambda) - (*windv * *windv);
+                *uvar = _lerp(lowusq, highusq, pr_lambda);
+                *vvar = _lerp(lowvsq, highvsq, pr_lambda);
         }
 }
 
