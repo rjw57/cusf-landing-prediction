@@ -1,6 +1,6 @@
 PKG_CONFIG_PACKAGES=glib-2.0
 LDFLAGS=-lm `pkg-config ${PKG_CONFIG_PACKAGES} --libs`
-CFLAGS=-Wall `pkg-config ${PKG_CONFIG_PACKAGES} --cflags`
+CFLAGS=-Wall -g `pkg-config ${PKG_CONFIG_PACKAGES} --cflags`
 
 PRED_OBJECTS = \
 	pred_src/pred.o                         \

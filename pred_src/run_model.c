@@ -13,6 +13,7 @@
 
 #include <math.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 #include "wind/wind_file.h"
 #include "util/random.h"
@@ -31,7 +32,7 @@ struct model_state_s
     float               lng;
     float               alt;
     altitude_model_t   *alt_model;
-    float               loglik;
+    double              loglik;
 };
 
 // Get the distance (in metres) of one degree of latitude and one degree of
@@ -91,7 +92,7 @@ _advance_one_timestep(wind_file_cache_t* cache,
         state->lat += v_samp * delta_t / ddlat;
         state->lng += u_samp * delta_t / ddlng;
 
-        state->loglik += u_lik + v_lik;
+        state->loglik += (double)(u_lik + v_lik);
     }
 
     return 1;
@@ -101,27 +102,40 @@ int run_model(wind_file_cache_t* cache, altitude_model_t* alt_model,
               float initial_lat, float initial_lng, float initial_alt,
               long int initial_timestamp) 
 {
-    model_state_t state;
+    model_state_t* states;
+    const unsigned int n_states = 50;
+    unsigned int i;
 
-    state.alt = initial_alt;
-    state.lat = initial_lat;
-    state.lng = initial_lng;
-    state.alt_model = alt_model;
-    state.loglik = 0.f;
+    states = (model_state_t*) malloc( sizeof(model_state_t) * n_states );
+
+    for(i=0; i<n_states; ++i) 
+    {
+        model_state_t* state = &(states[i]);
+
+        state->alt = initial_alt;
+        state->lat = initial_lat;
+        state->lng = initial_lng;
+        state->alt_model = alt_model;
+        state->loglik = 0.f;
+    }
 
     long int timestamp = initial_timestamp;
     
     int log_counter = 0; // only write position to output files every LOG_DECIMATE timesteps
     
-    while(_advance_one_timestep(cache, TIMESTEP, timestamp, initial_timestamp, 1, &state))
+    while(_advance_one_timestep(cache, TIMESTEP, timestamp, initial_timestamp, n_states, states))
     {
         if (log_counter == LOG_DECIMATE) {
-            write_position(state.lat, state.lng, state.alt, timestamp);
+            write_position(states[0].lat, states[0].lng, states[0].alt, timestamp);
             log_counter = 0;
         }
         log_counter++;
         timestamp += TIMESTEP;
     }
+
+    fprintf(stderr, "INFO: Final log lik: %f (=%f)\n", states[0].loglik, exp(states[0].loglik));
+
+    free(states);
 
     return 1;
 }
