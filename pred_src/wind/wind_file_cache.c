@@ -97,8 +97,13 @@ _parse_header(const char* filepath,
         return 1;
 }
 
+#ifdef __APPLE__
 static int
 _file_filter(struct dirent *entry)
+#else
+static int
+_file_filter(const struct dirent *entry)
+#endif
 {
         int filepath_len;
         int rv;
