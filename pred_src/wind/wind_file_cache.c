@@ -207,8 +207,13 @@ wind_file_cache_new(const char *directory)
                                         "changed under me!");
                 }
 
-                if(verbosity > 1)
+                if(verbosity > 1) {
                         fprintf(stderr, "INFO: Found %s.\n", filepath);
+                        fprintf(stderr, "INFO:   - Covers window (lat, long) = "
+                                        "(%f +/-%f, %f +/-%f).\n",
+                                        self->entries[i]->lat, self->entries[i]->latrad,
+                                        self->entries[i]->lon, self->entries[i]->lonrad);
+                }
 
                 // finished with this entry
                 free(dir_entries[i]);
@@ -256,13 +261,13 @@ wind_file_cache_entry_contains_point(wind_file_cache_entry_t* entry, float lat, 
         if(!entry)
                 return 0;
 
-        if(fabs(entry->lat - lat) <= entry->latrad)
-                return 1;
+        if(fabs(entry->lat - lat) > entry->latrad)
+                return 0;
 
-        if(_lon_dist(entry->lon, lon) <= entry->lonrad)
-                return 1;
+        if(_lon_dist(entry->lon, lon) > entry->lonrad)
+                return 0;
 
-        return 0;
+        return 1;
 }
 
 void
