@@ -25,6 +25,8 @@
 #include <string.h>
 #include <math.h>
 
+#include "../util/getline.h"
+
 extern int verbosity;
 
 struct wind_file_cache_entry_s
@@ -96,7 +98,7 @@ _parse_header(const char* filepath,
 }
 
 static int
-_file_filter(const struct dirent *entry)
+_file_filter(struct dirent *entry)
 {
         int filepath_len;
         int rv;
