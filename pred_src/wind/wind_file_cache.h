@@ -13,6 +13,8 @@
 #ifndef __WIND_FILES_H__
 #define __WIND_FILES_H__
 
+#include "wind_file.h"
+
 // A cache which scans the wind data directory for data files, tries to read
 // the header and parse out their timestamp and window information. It then
 // allows one to query for files closest in time and space for a specified
@@ -60,6 +62,11 @@ const char*             wind_file_cache_entry_file_path
 
 //                      Return the timestamp of the specified cache entry.
 unsigned int            wind_file_cache_entry_timestamp
+                                               (wind_file_cache_entry_t  *entry);
+
+//                      Return the file for of the specified cache entry loading it if 
+//                      necessary.
+wind_file_t*            wind_file_cache_entry_file
                                                (wind_file_cache_entry_t  *entry);
 
 #ifdef __cplusplus

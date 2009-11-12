@@ -11,6 +11,7 @@
 // --------------------------------------------------------------
 
 #include "wind_file_cache.h"
+#include "wind_file.h"
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -35,6 +36,7 @@ struct wind_file_cache_entry_s
         unsigned long           timestamp;              // As POSIX timestamp.
         float                   lat, lon;               // Window centre.
         float                   latrad, lonrad;         // Window radius.
+        wind_file_t            *loaded_file;            // Initially NULL.
 };
 
 struct wind_file_cache_s
@@ -215,6 +217,9 @@ wind_file_cache_new(const char *directory)
                                         self->entries[i]->lon, self->entries[i]->lonrad);
                 }
 
+                // initially, no file is loaded.
+                self->entries[i]->loaded_file = NULL;
+
                 // finished with this entry
                 free(dir_entries[i]);
         }
@@ -327,6 +332,25 @@ wind_file_cache_entry_timestamp(wind_file_cache_entry_t* entry)
         if(!entry)
                 return 0;
         return entry->timestamp;
+}
+
+wind_file_t*
+wind_file_cache_entry_file(wind_file_cache_entry_t *entry)
+{
+        const char* filepath;
+
+        if(!entry)
+                return NULL;
+
+        if(entry->loaded_file)
+                return entry->loaded_file;
+
+        filepath = wind_file_cache_entry_file_path(entry);
+        if(!filepath)
+                return NULL;
+
+        entry->loaded_file = wind_file_new(filepath);
+        return entry->loaded_file;
 }
 
 // Data for God's own editor.

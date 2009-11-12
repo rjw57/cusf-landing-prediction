@@ -36,7 +36,7 @@ int main(int argc, const char *argv[]) {
     
     long int initial_timestamp;
     float initial_lat, initial_lng, initial_alt;
-    float burst_alt, ascent_rate, drag_coeff;
+    float burst_alt, ascent_rate, drag_coeff, rmswinderror;
     int descent_mode;
     char* endptr;       // used to check for errors on strtod calls 
     
@@ -52,7 +52,8 @@ int main(int argc, const char *argv[]) {
         gopt_option('k', GOPT_ARG, gopt_shorts('k'), gopt_longs("kml")),
         gopt_option('t', GOPT_ARG, gopt_shorts('t'), gopt_longs("start_time")),
         gopt_option('i', GOPT_ARG, gopt_shorts('i'), gopt_longs("data_dir")),
-        gopt_option('d', 0, gopt_shorts('d'), gopt_longs("descending"))
+        gopt_option('d', 0, gopt_shorts('d'), gopt_longs("descending")),
+        gopt_option('e', GOPT_ARG, gopt_shorts('e'), gopt_longs("wind_error"))
     ));
 
     if (gopt(options, 'h')) {
@@ -71,6 +72,7 @@ int main(int argc, const char *argv[]) {
         printf(" -d --descending         We are in the descent phase of the flight, i.e. after\n");
         printf("                           burst or cutdown. burst_alt and ascent_rate ignored.\n");
         printf(" -i --data_dir <dir>     Input directory for wind data, defaults to current dir.\n\n");
+        printf(" -e --wind_error <err>   RMS windspeed error (m/s).\n");
         printf("The scenario file is an INI-like file giving the launch scenario. If it is\n");
         printf("omitted, the scenario is read from standard input.\n");
       exit(0);
@@ -122,8 +124,6 @@ int main(int argc, const char *argv[]) {
     if (!(gopt_arg(options, 'i', &data_dir) && strcmp(data_dir, "-")))
       data_dir = "./";
 
-    // release gopt data, 
-    gopt_free(options);
 
     // populate wind data file cache
     file_cache = wind_file_cache_new(data_dir);
@@ -170,6 +170,15 @@ int main(int argc, const char *argv[]) {
 
     burst_alt = iniparser_getdouble(scenario, "altitude-model:burst-altitude", 1.0);
 
+    rmswinderror = iniparser_getdouble(scenario, "atmosphere:wind-error", 0.0);
+    if(gopt_arg(options, 'e', &argument) && strcmp(argument, "-")) {
+        rmswinderror = strtod(argument, &endptr);
+        if (endptr == argument) {
+            fprintf(stderr, "ERROR: %s: invalid RMS wind speed error\n", argument);
+            exit(1);
+        }
+    }
+
     if(verbosity > 0) {
         fprintf(stderr, "INFO: Scenario loaded:\n");
         fprintf(stderr, "    - Initial latitude  : %lf deg N\n", initial_lat);
@@ -180,7 +189,11 @@ int main(int argc, const char *argv[]) {
             fprintf(stderr, "    - Ascent rate       : %lf m/s\n", ascent_rate);
             fprintf(stderr, "    - Burst alt.        : %lf m\n", burst_alt);
         }
+        fprintf(stderr, "    - Windspeed err.    : %f m/s\n", rmswinderror);
     }
+
+    // release gopt data, 
+    gopt_free(options);
     
     {
         // do the actual stuff!!
@@ -192,7 +205,8 @@ int main(int argc, const char *argv[]) {
         }
 
         if (!run_model(file_cache, alt_model, 
-                       initial_lat, initial_lng, initial_alt, initial_timestamp)) {
+                       initial_lat, initial_lng, initial_alt, initial_timestamp,
+                       rmswinderror)) {
                 fprintf(stderr, "ERROR: error during model run!\n");
                 exit(1);
         }

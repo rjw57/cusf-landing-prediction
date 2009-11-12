@@ -15,19 +15,17 @@
 #include <glib.h>
 
 // Sample from a normal distribution with zero mean and unit variance.
-//
-// This uses a simple, non-exact method which in essence approximates the true
-// distribution with a 12-section, eleventh-order polynomial.
 // See http://en.wikipedia.org/wiki/Normal_distribution
 //                              #Generating_values_for_normal_random_variables
 static float _random_sample_normal_intl(float* loglik)
 {
     int i;
-    double v = 0.0;
+    double u, v = 0.0;
     static const double k = 0.918938533204673; // = 0.5 * (log(2) + log(pi)), see below.
 
-    for(i=0; i<12; ++i) { v += g_random_double(); }
-    for(i=0; i<6; ++i) { v -= g_random_double(); }
+    u = g_random_double();
+    v = g_random_double();
+    v = sqrt(-2.0 * log(u)) * cos(2.0 * G_PI * v);
 
     // actual likelihood is 1/sqrt(2*pi) exp(-(x^2)) since mu = 0 and sigma^2 = 1.
     // log-likelihood is therefore:

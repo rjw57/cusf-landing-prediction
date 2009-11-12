@@ -14,6 +14,7 @@
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <assert.h>
 
 #include "wind/wind_file.h"
 #include "util/random.h"
@@ -60,14 +61,15 @@ static int
 _advance_one_timestep(wind_file_cache_t* cache, 
                       unsigned long delta_t,
                       unsigned long timestamp, unsigned long initial_timestamp,
-                      unsigned int n_states, model_state_t* states)
+                      unsigned int n_states, model_state_t* states,
+                      float rmserror)
 {
     unsigned int i;
 
     for(i=0; i<n_states; ++i)
     {
         float ddlat, ddlng;
-        float wind_v, wind_u, wind_u_var, wind_v_var;
+        float wind_v, wind_u, wind_var;
         float u_samp, v_samp, u_lik, v_lik;
         model_state_t* state = &(states[i]);
 
@@ -76,7 +78,7 @@ _advance_one_timestep(wind_file_cache_t* cache,
             return 0;
 
         if(!get_wind(cache, state->lat, state->lng, state->alt, timestamp, 
-                    &wind_v, &wind_u, &wind_u_var, &wind_v_var)) {
+                    &wind_v, &wind_u, &wind_var)) {
                 fprintf(stderr, "ERROR: error getting wind data\n");
                 return 0;
         }
@@ -85,9 +87,20 @@ _advance_one_timestep(wind_file_cache_t* cache,
 
         // NOTE: it this really the right thing to be doing? - think about what
         // happens near the poles
-    
-        u_samp = random_sample_normal(wind_u, wind_u_var, &u_lik);
-        v_samp = random_sample_normal(wind_v, wind_v_var, &v_lik);
+
+        wind_var += rmserror * rmserror;
+
+        assert(wind_var >= 0.f);
+
+        //fprintf(stderr, "U: %f +/- %f, V: %f +/- %f\n",
+        //        wind_u, sqrtf(wind_u_var),
+        //        wind_v, sqrtf(wind_v_var));
+
+        u_samp = random_sample_normal(wind_u, wind_var, &u_lik);
+        v_samp = random_sample_normal(wind_v, wind_var, &v_lik);
+
+        //u_samp = wind_u;
+        //v_samp = wind_v;
 
         state->lat += v_samp * delta_t / ddlat;
         state->lng += u_samp * delta_t / ddlng;
@@ -98,12 +111,22 @@ _advance_one_timestep(wind_file_cache_t* cache,
     return 1;
 }
 
+static int _state_compare_rev(const void* a, const void *b)
+{
+    model_state_t* sa = (model_state_t*)a;
+    model_state_t* sb = (model_state_t*)b;
+
+    // this returns a value s.t. the states will be sorted so that
+    // the maximum likelihood state is at position 0.
+    return sb->loglik - sa->loglik;
+}
+
 int run_model(wind_file_cache_t* cache, altitude_model_t* alt_model,
               float initial_lat, float initial_lng, float initial_alt,
-              long int initial_timestamp) 
+              long int initial_timestamp, float rmswinderror) 
 {
     model_state_t* states;
-    const unsigned int n_states = 50;
+    const unsigned int n_states = 150;
     unsigned int i;
 
     states = (model_state_t*) malloc( sizeof(model_state_t) * n_states );
@@ -123,34 +146,44 @@ int run_model(wind_file_cache_t* cache, altitude_model_t* alt_model,
     
     int log_counter = 0; // only write position to output files every LOG_DECIMATE timesteps
     
-    while(_advance_one_timestep(cache, TIMESTEP, timestamp, initial_timestamp, n_states, states))
+    while(_advance_one_timestep(cache, TIMESTEP, timestamp, initial_timestamp, 
+                n_states, states, rmswinderror))
     {
+        // Sort the array of models in order of log likelihood. 
+        qsort(states, n_states, sizeof(model_state_t), _state_compare_rev);
+
+        // write the maximum likelihood state out.
         if (log_counter == LOG_DECIMATE) {
             write_position(states[0].lat, states[0].lng, states[0].alt, timestamp);
             log_counter = 0;
         }
+
         log_counter++;
         timestamp += TIMESTEP;
     }
 
-    fprintf(stderr, "INFO: Final log lik: %f (=%f)\n", states[0].loglik, exp(states[0].loglik));
+    for(i=0; i<n_states; ++i) 
+    {
+        model_state_t* state = &(states[i]);
+        write_position(state->lat, state->lng, state->alt, timestamp);
+    }
+
+    fprintf(stderr, "INFO: Final maximum log lik: %f (=%f)\n", 
+            states[0].loglik, exp(states[0].loglik));
 
     free(states);
 
     return 1;
 }
 
-// vim:sw=4:ts=4:et:cindent
 int get_wind(wind_file_cache_t* cache, float lat, float lng, float alt, long int timestamp,
-        float* wind_v, float* wind_u, float *wind_u_var, float *wind_v_var) {
+        float* wind_v, float* wind_u, float *wind_var) {
     int i;
     float lambda, wu_l, wv_l, wu_h, wv_h;
     float wuvar_l, wvvar_l, wuvar_h, wvvar_h;
     wind_file_cache_entry_t* found_entries[] = { NULL, NULL };
+    wind_file_t* found_files[] = { NULL, NULL };
     unsigned int earlier_ts, later_ts;
-
-    static wind_file_cache_entry_t* loaded_cache_entries[] = { NULL, NULL };
-    static wind_file_t* loaded_files[] = { NULL, NULL };
 
     // look for a wind file which matches this latitude and longitude...
     wind_file_cache_find_entry(cache, lat, lng, timestamp, 
@@ -164,44 +197,19 @@ int get_wind(wind_file_cache_t* cache, float lat, float lng, float alt, long int
     if(!wind_file_cache_entry_contains_point(found_entries[0], lat, lng) || 
             !wind_file_cache_entry_contains_point(found_entries[1], lat, lng))
     {
-        fprintf(stderr, "ERROR: Could not locate appropriate wind data tile for location.\n");
+        fprintf(stderr, "ERROR: Could not locate appropriate wind data tile for location "
+                "lat=%f, lon=%f.\n", lat, lng);
         return 0;
     }
 
-    // Load any files we might need
+    // Look in the cache for the files we need.
     for(i=0; i<2; ++i)
     {
-        if((loaded_cache_entries[i] != found_entries[i]) || !loaded_files[i])
-        {
-            // Check to see if any of the other loaded enties are useful first
-            int j;
-            for(j=0; j<2; ++j) 
-            {
-                if(loaded_cache_entries[j] == found_entries[i]) 
-                {
-                    if(loaded_files[i]) 
-                    {
-                        wind_file_free(loaded_files[i]);
-                    }
-                    loaded_files[i] = loaded_files[j];
-                    loaded_files[j] = NULL;
-                    loaded_cache_entries[i] = loaded_cache_entries[j];
-                    loaded_cache_entries[j] = NULL;
-                }
-            }
-
-            // If we could still not find a loaded file, actually load one.
-            if(loaded_cache_entries[i] != found_entries[i])
-            {
-                loaded_cache_entries[i] = found_entries[i];
-                loaded_files[i] = wind_file_new(
-                        wind_file_cache_entry_file_path(loaded_cache_entries[i]));
-            }
-        }
+        found_files[i] = wind_file_cache_entry_file(found_entries[i]);
     }
 
-    earlier_ts = wind_file_cache_entry_timestamp(loaded_cache_entries[0]);
-    later_ts = wind_file_cache_entry_timestamp(loaded_cache_entries[1]);
+    earlier_ts = wind_file_cache_entry_timestamp(found_entries[0]);
+    later_ts = wind_file_cache_entry_timestamp(found_entries[1]);
 
     if(earlier_ts == later_ts)
     {
@@ -215,15 +223,17 @@ int get_wind(wind_file_cache_t* cache, float lat, float lng, float alt, long int
     else
         lambda = 0.5f;
 
-    wind_file_get_wind(loaded_files[0], lat, lng, alt, &wu_l, &wv_l, &wuvar_l, &wvvar_l);
-    wind_file_get_wind(loaded_files[1], lat, lng, alt, &wu_h, &wv_h, &wuvar_h, &wvvar_h);
+    wind_file_get_wind(found_files[0], lat, lng, alt, &wu_l, &wv_l, &wuvar_l, &wvvar_l);
+    wind_file_get_wind(found_files[1], lat, lng, alt, &wu_h, &wv_h, &wuvar_h, &wvvar_h);
 
     *wind_u = lambda * wu_h + (1.f-lambda) * wu_l;
     *wind_v = lambda * wv_h + (1.f-lambda) * wv_l;
 
-    *wind_u_var = (lambda * wuvar_h + (1.f-lambda) * wuvar_l) - ((*wind_u)*(*wind_u));
-    *wind_v_var = (lambda * wvvar_h + (1.f-lambda) * wvvar_l) - ((*wind_v)*(*wind_v));
+    // flatten the u and v variances into a single mean variance for the
+    // magnitude.
+    *wind_var = 0.5f * (wuvar_h + wuvar_l + wvvar_h + wvvar_l);
 
     return 1;
 }
 
+// vim:sw=4:ts=4:et:cindent
