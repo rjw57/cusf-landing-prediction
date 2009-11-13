@@ -40,5 +40,5 @@ fi
 
 LOGFILE=${LOGDIR}/fetchdatalog-`date +%Y.%m.%d-%H:%M:%S`
 
-# Run the data grabber from now to 48 hours in future
-${GETDATA} --lattiles=3 --lontiles=3 --lat=32 --lon=-10 -v -f 48 2>${LOGFILE}
+# Run the data grabber from now to 24 hours in future
+${GETDATA} --lat=52 --lon=0 -v -f 24 2>${LOGFILE}
