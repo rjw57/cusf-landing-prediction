@@ -1,0 +1,11 @@
+CMakeCache.txt
+CMakeFiles/
+Makefile
+cmake_install.cmake
+*.o
+.*.swp
+pred_src/pred
+pydap/gfs/
+pydap/pydap-cache/
+cmake_install.cmake
+test/output.csv
