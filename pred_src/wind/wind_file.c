@@ -423,35 +423,7 @@ wind_file_new(const char* filepath)
         }
 
 #ifdef CUDA_RUNTIME_FOUND 
-        assert((self->n_axes == 3) && (self->n_components == 3));
         self->cuda_array = NULL;
-
-        struct cudaChannelFormatDesc cfd = { 
-                32, 32, 32, 32,
-                cudaChannelFormatKindFloat };
-        struct cudaExtent byte_extent = make_cudaExtent( 
-                        self->axes[0]->n_values * sizeof(float) * 4,
-                        self->axes[1]->n_values, 
-                        self->axes[2]->n_values );
-        struct cudaExtent element_extent = make_cudaExtent( 
-                        self->axes[0]->n_values,
-                        self->axes[1]->n_values,
-                        self->axes[2]->n_values );
-
-        /* Allocate the CUDA array which will hold this wind data */
-        CUDA_CALL( cudaMalloc3DArray( &self->cuda_array, &cfd, byte_extent ) );
-
-        /* Now copy the wind data to the array */
-        struct cudaMemcpy3DParms memcpy_parms = { 0 };
-        memcpy_parms.srcPtr = make_cudaPitchedPtr( 
-                        self->data,
-                        self->axes[0]->n_values * sizeof(float) * 4, 
-                        self->axes[0]->n_values, 
-                        self->axes[1]->n_values );
-        memcpy_parms.dstArray = self->cuda_array;
-        memcpy_parms.extent = element_extent;
-        memcpy_parms.kind = cudaMemcpyHostToDevice;
-        CUDA_CALL( cudaMemcpy3D( &memcpy_parms ) );
 #endif
 
         return self;
@@ -491,6 +463,48 @@ wind_file_free(wind_file_t* file)
 
         free(file);
 }
+
+#ifdef CUDA_RUNTIME_FOUND 
+struct cudaArray*
+wind_file_get_cuda_data(wind_file_t *self)
+{       
+        assert(self);
+        if(self->cuda_array)
+                return self->cuda_array;
+
+        assert((self->n_axes == 3) && (self->n_components == 3));
+
+        /* No existing array was found, create and populate one. */
+        struct cudaChannelFormatDesc cfd = { 
+                32, 32, 32, 32,
+                cudaChannelFormatKindFloat };
+        struct cudaExtent byte_extent = make_cudaExtent( 
+                        self->axes[0]->n_values * sizeof(float) * 4,
+                        self->axes[1]->n_values, 
+                        self->axes[2]->n_values );
+        struct cudaExtent element_extent = make_cudaExtent( 
+                        self->axes[0]->n_values,
+                        self->axes[1]->n_values,
+                        self->axes[2]->n_values );
+
+        /* Allocate the CUDA array which will hold this wind data */
+        CUDA_CALL( cudaMalloc3DArray( &self->cuda_array, &cfd, byte_extent ) );
+
+        /* Now copy the wind data to the array */
+        struct cudaMemcpy3DParms memcpy_parms = { 0 };
+        memcpy_parms.srcPtr = make_cudaPitchedPtr( 
+                        self->data,
+                        self->axes[0]->n_values * sizeof(float) * 4, 
+                        self->axes[0]->n_values, 
+                        self->axes[1]->n_values );
+        memcpy_parms.dstArray = self->cuda_array;
+        memcpy_parms.extent = element_extent;
+        memcpy_parms.kind = cudaMemcpyHostToDevice;
+        CUDA_CALL( cudaMemcpy3D( &memcpy_parms ) );
+
+        return self->cuda_array;
+}
+#endif
 
 static float*
 _wind_file_get_record(wind_file_t* file, 

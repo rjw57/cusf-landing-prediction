@@ -17,6 +17,8 @@
 extern "C" {
 #endif // __cplusplus
 
+#include "../config.h"
+
 // An opaque type representing the cache itself.
 typedef struct wind_file_s        wind_file_t;
 
@@ -37,6 +39,14 @@ void                    wind_file_get_wind     (wind_file_t        *file,
                                                 float              *windv,
                                                 float              *windusq,
                                                 float              *windvsq);
+
+#ifdef CUDA_RUNTIME_FOUND
+#include <cuda_runtime.h>
+
+struct cudaArray*       wind_file_get_cuda_data
+                                               (wind_file_t        *file);
+
+#endif
 
 #ifdef __cplusplus
 }
