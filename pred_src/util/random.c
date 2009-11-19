@@ -13,13 +13,13 @@
 #include "random.h"
 
 #include <glib.h>
+#include <math.h>
 
 // Sample from a normal distribution with zero mean and unit variance.
 // See http://en.wikipedia.org/wiki/Normal_distribution
 //                              #Generating_values_for_normal_random_variables
 static float _random_sample_normal_intl(float* loglik)
 {
-    int i;
     double u, v = 0.0;
     static const double k = 0.918938533204673; // = 0.5 * (log(2) + log(pi)), see below.
 
