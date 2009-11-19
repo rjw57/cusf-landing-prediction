@@ -31,6 +31,9 @@ wind_file_t            *wind_file_new          (const char         *file);
 //                      Free resources associated with 'file'.
 void                    wind_file_free         (wind_file_t        *file);
 
+unsigned long           wind_file_get_timestamp
+                                               (wind_file_t        *file);
+
 void                    wind_file_get_wind     (wind_file_t        *file, 
                                                 float               lat,
                                                 float               lon,

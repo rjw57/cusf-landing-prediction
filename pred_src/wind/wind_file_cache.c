@@ -353,5 +353,17 @@ wind_file_cache_entry_file(wind_file_cache_entry_t *entry)
         return entry->loaded_file;
 }
 
+void
+wind_file_cache_entry_release_file(wind_file_cache_entry_t *entry)
+{
+        if(!entry)
+                return;
+
+        if(entry->loaded_file)
+                wind_file_free(entry->loaded_file);
+
+        entry->loaded_file = NULL;
+}
+
 // Data for God's own editor.
 // vim:sw=8:ts=8:et:cindent

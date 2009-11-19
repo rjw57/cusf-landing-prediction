@@ -550,6 +550,14 @@ _bilinear_interpolate(float ll, float lr, float rl, float rr, float lambda1, flo
         return _lerp(il,ir,lambda2);
 }
 
+unsigned long
+wind_file_get_timestamp(wind_file_t* file)
+{
+        if(!file)
+                return 0;
+        return file->timestamp;
+}
+
 void
 wind_file_get_wind(wind_file_t* file, float lat, float lon, float height, 
                 float* windu, float *windv, float *uvar, float *vvar)

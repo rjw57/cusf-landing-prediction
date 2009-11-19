@@ -69,6 +69,10 @@ unsigned int            wind_file_cache_entry_timestamp
 wind_file_t*            wind_file_cache_entry_file
                                                (wind_file_cache_entry_t  *entry);
 
+//                      Release the file for the specified cache entry if it was loaded.
+void                    wind_file_cache_entry_release_file
+                                               (wind_file_cache_entry_t  *entry);
+
 #ifdef __cplusplus
 }
 #endif // __cplusplus
