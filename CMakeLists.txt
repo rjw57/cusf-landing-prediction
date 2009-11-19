@@ -35,10 +35,9 @@ PROJECT(CUDAEXAMPLE CUDA C CXX)
 # Set the minimum required version of cmake
 CMAKE_MINIMUM_REQUIRED(VERSION 2.6)
 
-# Enable warnings and make them errors
-# Also enable optimisation
-SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O9 -Wall -Werror")
-SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O9 -Wall -Werror")
+# Enable warnings and also enable optimisation
+SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O9 -Wall")
+SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O9 -Wall")
 
 # On x86_64 we need to compile with -fPIC
 IF(UNIX AND NOT WIN32)

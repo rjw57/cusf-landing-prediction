@@ -5,12 +5,25 @@
 # Use PkgConfig to find the glib libraries
 find_package(PkgConfig)
 
+# Look for CUDA
+find_package(CUDARuntime)
+
 pkg_check_modules(GLIB REQUIRED glib-2.0)
 
 include_directories(${GLIB_INCLUDE_DIRS})
 link_directories(${GLIB_LIBRARY_DIRS})
 
+# Create the configuration header
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.in ${CMAKE_CURRENT_SOURCE_DIR}/config.h @ONLY)
+
+set(PRED_LINK_LIBRARIES ${GLIB_LIBRARIES} -lm)
+if(CUDA_RUNTIME_FOUND)
+	include_directories(${CUDA_RUNTIME_INCLUDE_DIR})
+	set(PRED_LINK_LIBRARIES ${PRED_LINK_LIBRARIES} ${CUDA_RUNTIME_LIBRARIES})
+endif(CUDA_RUNTIME_FOUND)
+
 add_executable(pred
+	config.h
 	util/gopt.c
 	util/getdelim.c
 	util/random.h
@@ -35,4 +48,4 @@ add_executable(pred
 	ini/dictionary.c
 )
 
-target_link_libraries(pred ${GLIB_LIBRARIES} -lm)
+target_link_libraries(pred ${PRED_LINK_LIBRARIES})

@@ -17,7 +17,22 @@
 #include <assert.h>
 #include <math.h>
 
+#include "../config.h"
 #include "../util/getline.h"
+
+#ifdef CUDA_RUNTIME_FOUND
+#include <cuda_runtime_api.h>
+#include <driver_functions.h>
+
+#define CUDA_CALL(call) \
+        do { \
+                cudaError_t _err = (call); \
+                if(_err != cudaSuccess) { \
+                        fprintf(stderr, "ERROR: Calling %s returned %s.\n", \
+                                #call, cudaGetErrorString(_err)); \
+                } \
+        } while(0)
+#endif
 
 extern int verbosity;
 
@@ -45,6 +60,11 @@ struct wind_file_s
 
         //                      A pointer to the actual data.
         float                  *data;
+
+#ifdef CUDA_RUNTIME_FOUND
+        //                      A pointer to the CUDA array holding a copy of the data
+        struct cudaArray       *cuda_array;
+#endif
 };
 
 // These exciting functions are all to do with the fact that 'left' and 'right'
@@ -357,17 +377,20 @@ wind_file_new(const char* filepath)
                 fprintf(stderr, "INFO: Data is %i axis made up of "
                                 "(%i records) x (%i components).\n",
                                 num_axes, num_lines, num_components);
-
+        
         // we have everything we need to actually read the data now. Allocate an
         // array to store it.
-        self->data = (float*)malloc(sizeof(float) * num_lines * num_components);
+
+        // We use 4 components rather than 3 since when we use CUDA, we need to copy
+        // from a buffer of that format. 
+        self->data = (float*)malloc(sizeof(float) * num_lines * 4);
 
         // and iterate reading data. FIXME: Extra data is currently ignored silently.
         // we should probably check there are no non-comment lines after the data.
         for(i=0; i<num_lines; ++i)
         {
                 if((0 > _get_non_comment_line(&line, &line_len, file)) ||
-                   (!_parse_values_line(line, num_components, &(self->data[num_components*i]))))
+                   (!_parse_values_line(line, num_components, &(self->data[4*i]))))
                 {
                         fprintf(stderr, "ERROR: Could not parse data line %i of file. "
                                         "The file may be corrupt or truncated.\n",
@@ -399,6 +422,38 @@ wind_file_new(const char* filepath)
                 return NULL;
         }
 
+#ifdef CUDA_RUNTIME_FOUND 
+        assert((self->n_axes == 3) && (self->n_components == 3));
+        self->cuda_array = NULL;
+
+        struct cudaChannelFormatDesc cfd = { 
+                32, 32, 32, 32,
+                cudaChannelFormatKindFloat };
+        struct cudaExtent byte_extent = make_cudaExtent( 
+                        self->axes[0]->n_values * sizeof(float) * 4,
+                        self->axes[1]->n_values, 
+                        self->axes[2]->n_values );
+        struct cudaExtent element_extent = make_cudaExtent( 
+                        self->axes[0]->n_values,
+                        self->axes[1]->n_values,
+                        self->axes[2]->n_values );
+
+        /* Allocate the CUDA array which will hold this wind data */
+        CUDA_CALL( cudaMalloc3DArray( &self->cuda_array, &cfd, byte_extent ) );
+
+        /* Now copy the wind data to the array */
+        struct cudaMemcpy3DParms memcpy_parms = { 0 };
+        memcpy_parms.srcPtr = make_cudaPitchedPtr( 
+                        self->data,
+                        self->axes[0]->n_values * sizeof(float) * 4, 
+                        self->axes[0]->n_values, 
+                        self->axes[1]->n_values );
+        memcpy_parms.dstArray = self->cuda_array;
+        memcpy_parms.extent = element_extent;
+        memcpy_parms.kind = cudaMemcpyHostToDevice;
+        CUDA_CALL( cudaMemcpy3D( &memcpy_parms ) );
+#endif
+
         return self;
 }
 
@@ -426,6 +481,14 @@ wind_file_free(wind_file_t* file)
                 free(file->data);
         }
 
+#ifdef CUDA_RUNTIME_FOUND       
+        if(file->cuda_array)
+        {
+                CUDA_CALL( cudaFreeArray( file->cuda_array ) );
+                file->cuda_array = NULL;
+        }
+#endif
+
         free(file);
 }
 
@@ -434,7 +497,7 @@ _wind_file_get_record(wind_file_t* file,
                 unsigned int lat_idx, unsigned int lon_idx,
                 unsigned int pressure_idx)
 {
-        size_t offset = file->n_components * 
+        size_t offset = 4 * 
                 (lon_idx + 
                         file->axes[2]->n_values * 
                                 (lat_idx + file->axes[1]->n_values * pressure_idx));

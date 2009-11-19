@@ -1,0 +1,4 @@
+/* System configuration */
+
+#cmakedefine CUDA_RUNTIME_FOUND
+

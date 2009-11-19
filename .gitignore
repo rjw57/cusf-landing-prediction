@@ -9,3 +9,4 @@ pydap/gfs/
 pydap/pydap-cache/
 cmake_install.cmake
 test/output.csv
+config.h
