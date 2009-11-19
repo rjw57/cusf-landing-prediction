@@ -55,3 +55,6 @@ ENDIF(UNIX AND NOT WIN32)
 
 # The landing predictor itself
 add_subdirectory(pred_src)
+
+# Any test targets
+add_subdirectory(test)
