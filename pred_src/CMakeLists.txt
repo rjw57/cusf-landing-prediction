@@ -32,6 +32,10 @@ add_executable(pred
 	util/getline.c
 	util/getdelim.h
 	util/random.c
+	util/threading.c
+	util/threading.h
+	util/system-info.c
+	util/system-info.h
 	altitude.h
 	wind/wind_file_cache.c
 	wind/wind_file_cache.h
