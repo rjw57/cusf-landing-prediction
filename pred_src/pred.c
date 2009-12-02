@@ -179,11 +179,56 @@ int main(int argc, const char *argv[]) {
         }
     }
 
+    {
+        int year, month, day, hour, minute, second;
+        year = iniparser_getint(scenario, "launch-time:year", -1);
+        month = iniparser_getint(scenario, "launch-time:month", -1);
+        day = iniparser_getint(scenario, "launch-time:day", -1);
+        hour = iniparser_getint(scenario, "launch-time:hour", -1);
+        minute = iniparser_getint(scenario, "launch-time:minute", -1);
+        second = iniparser_getint(scenario, "launch-time:second", -1);
+
+        if((year >= 0) && (month >= 0) && (day >= 0) && (hour >= 0)
+                && (minute >= 0) && (second >= 0)) 
+        {
+            struct tm timeval = { 0 };
+            time_t scenario_launch_time = -1;
+
+            if(verbosity > 0) {
+                fprintf(stderr, "INFO: Using launch time from scenario: "
+                        "%i/%i/%i %i:%i:%i\n",
+                        year, month, day, hour, minute, second);
+            }
+
+            timeval.tm_sec = second;
+            timeval.tm_min = minute;
+            timeval.tm_hour = hour;
+            timeval.tm_mday = day; /* 1 - 31 */
+            timeval.tm_mon = month - 1; /* 0 - 11 */
+            timeval.tm_year = year - 1900; /* fuck you Millenium Bug! */
+
+#ifndef _BSD_SOURCE
+#           warning This version of mktime does not allow explicit setting of timezone. 
+#else
+            timeval.tm_zone = "UTC";
+#endif
+
+            scenario_launch_time = mktime(&timeval);
+            if(scenario_launch_time <= 0) {
+                fprintf(stderr, "WARN: Launch time in scenario is invalid, reverting to "
+                        "default timestamp.\n");
+            } else {
+                initial_timestamp = scenario_launch_time;
+            }
+        }
+    }
+
     if(verbosity > 0) {
         fprintf(stderr, "INFO: Scenario loaded:\n");
         fprintf(stderr, "    - Initial latitude  : %lf deg N\n", initial_lat);
         fprintf(stderr, "    - Initial longitude : %lf deg E\n", initial_lng);
         fprintf(stderr, "    - Initial altitude  : %lf m above sea level\n", initial_alt);
+        fprintf(stderr, "    - Initial timestamp : %li\n", initial_timestamp);
         fprintf(stderr, "    - Drag coeff.       : %lf\n", drag_coeff);
         if(!descent_mode) {
             fprintf(stderr, "    - Ascent rate       : %lf m/s\n", ascent_rate);
