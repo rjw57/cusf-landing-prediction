@@ -126,7 +126,7 @@ int run_model(wind_file_cache_t* cache, altitude_model_t* alt_model,
               long int initial_timestamp, float rmswinderror) 
 {
     model_state_t* states;
-    const unsigned int n_states = 150;
+    const unsigned int n_states = 1;
     unsigned int i;
 
     states = (model_state_t*) malloc( sizeof(model_state_t) * n_states );
