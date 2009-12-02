@@ -6,7 +6,7 @@ SET(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 PROJECT(CUSFLANDPRED C CXX)
 
 # Set the minimum required version of cmake
-CMAKE_MINIMUM_REQUIRED(VERSION 2.6)
+CMAKE_MINIMUM_REQUIRED(VERSION 2.4)
 
 # Enable warnings and make them errors
 # Also enable optimisation
