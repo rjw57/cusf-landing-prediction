@@ -6,7 +6,7 @@ add_custom_command(
 	OUTPUT
 		output.csv
 	COMMAND 
-		pred -v -i gfs scenario.ini > output.csv
+		../pred_src/pred -v -i gfs scenario.ini > output.csv
 	DEPENDS
 		pred
 )
