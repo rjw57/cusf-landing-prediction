@@ -107,7 +107,7 @@ altitude_model_get_altitude(altitude_model_t* self, int time_into_flight, float*
 
 float get_density(float altitude) {
     
-    float temp, pressure;
+    float temp = 0.f, pressure = 0.f;
     
     if (altitude > 25000) {
         temp = -131.21 + 0.00299 * altitude;
