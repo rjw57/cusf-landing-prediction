@@ -1,73 +1,3 @@
-var newpred_root = 'newpred.cgi/'
-var predictions_table = null;
-var layout = null;
-
-function error(title, messageHtml) {
-        $('#errordialog').html(messageHtml).dialog('option', 'title', title).dialog('open');
-}
-
-function newPredCallback(data, textStatus) {
-}
-
-function submitForm() {
-        function errFunc(request, textStatus) {
-                $('#waitingdialog').dialog('close');
-                error('Error running prediction', request.responseText);
-        }
-
-        function successFunc(data, textStatus) {
-                $('#waitingdialog').dialog('close');
-                /*
-                var pred_root = 'predictions/' + $.trim(data) + '/'
-                var html = '<p>Success: <a href="' + pred_root + 'log">log</a>, ' +
-                        '<a href="' + pred_root + 'output">output</a>, ' +
-                        '<a href="' + pred_root + 'output.kml">KML output</a></p>';
-                $('#success').html(html);
-                */
-
-                // Refresh the table
-                refreshPredictionTable();
-        }
-
-        $('#new_prediction').dialog('close');
-        $('#waitingdialog').dialog('open');
-        $.ajax( {
-                contentType: 'application/json',
-                data: formToJSON('form#scenario'),
-                dataType: 'text',
-                error: errFunc,
-                success: successFunc,
-                type: 'POST',
-                url: newpred_root
-        });
-}
-
-function formToJSON(form) {
-        // the scenario JSON document.
-        var scenario = { };
-
-        // input elements whose name matches this regexp are considered part of
-        // the scenario.
-        var element_regexp = new RegExp('^([^:]*):([^:]*)$');
-
-        // iterate over each input element in the form...
-        $(form).find('input').each(function() {
-                // see if the name matches the regexp above.
-                var match = element_regexp.exec($(this).attr('name'));
-
-                // if it does, insert the value into the JSON
-                if( match != null ) {
-                        if( scenario[match[1]] == undefined ) {
-                                scenario[match[1]] = { };
-                        }
-                        scenario[match[1]][match[2]] = $(this).attr('value');
-                }
-        });
-
-        // return the scenario as a JSON document.
-        return JSON.encode(scenario);
-}
-
 var g_map_object = null;
 function init_map() {
         var latlng = new google.maps.LatLng(52, 0);
@@ -89,14 +19,15 @@ function populate_map() {
                        console.log('Prediction: ' + uuid + ' (' + where.latitude + ',' + where.longitude + ')');
 
                        var launch_time = new Date();
-                       launch_time.setUTCFullYear(when.year);
+                       launch_time.setUTCFullYear(when.year - 1);
                        launch_time.setUTCMonth(when.month);
                        launch_time.setUTCDate(when.day);
                        launch_time.setUTCHours(when.hour);
                        launch_time.setUTCMinutes(when.minute);
                        launch_time.setUTCSeconds(when.second);
 
-                       var latlng = new google.maps.LatLng(where.latitude, where.longitude);
+                       var latlng = new google.maps.LatLng(
+                                where.latitude, where.longitude);
                        var marker = new google.maps.Marker({
                                 position: latlng,
                                 map: g_map_object,
