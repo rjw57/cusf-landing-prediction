@@ -13,10 +13,10 @@ function init_map() {
 function populate_map() {
        $.getJSON('data/manifest.json', null, 
        function(data) { 
-               $.each(data, function(uuid, entry) {        
+               $.each(data['predictions'], function(uuid, entry) {        
                        where = entry['landing-location'];
                        when = entry['launch-time'];
-                       console.log('Prediction: ' + uuid + ' (' + where.latitude + ',' + where.longitude + ')');
+                       // console.log('Prediction: ' + uuid + ' (' + where.latitude + ',' + where.longitude + ')');
 
                        var launch_time = new Date();
                        launch_time.setUTCFullYear(when.year);
@@ -34,6 +34,14 @@ function populate_map() {
                                 title: launch_time.format('%d/%b/%Y %H:%M:%S'),
                        });
                });
+
+               var template = data['scenario-template'];
+               $('#launch-lat').text(template['launch-site'].latitude);
+               $('#launch-lon').text(template['launch-site'].longitude);
+               $('#launch-alt').text(template['launch-site'].altitude);
+               $('#ascent-rate').text(template['altitude-model']['ascent-rate']);
+               $('#descent-rate').text(template['altitude-model']['descent-rate']);
+               $('#burst-alt').text(template['altitude-model']['burst-altitude']);
        }
        );
 }

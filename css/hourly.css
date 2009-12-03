@@ -7,5 +7,34 @@ html {
 body {
 	margin: 0; padding: 0;
 }
+
 /* The whoppping map in the centre */
 #map_canvas { width: 100%; height: 100%; }
+
+#scenario_template { 
+	position: absolute; 
+	left: 0; bottom: 0; 
+	background-color: white; 
+	border: 1px solid #8888ff; 
+	border-left: none;
+	border-bottom: none;
+	padding: 0.25em 1em;
+}
+
+#scenario_template td { 
+	font-size: 80%;
+}
+
+#scenario_template h1 { 
+	font-size: 100%;
+	text-align: center;
+	margin: 0.25em 0em 0.75em 0em;
+}
+
+td.right-td {
+	text-align: right;
+}
+
+td.spacer {
+	width: 1em;
+}
