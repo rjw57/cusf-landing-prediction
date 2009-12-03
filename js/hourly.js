@@ -19,8 +19,8 @@ function populate_map() {
                        console.log('Prediction: ' + uuid + ' (' + where.latitude + ',' + where.longitude + ')');
 
                        var launch_time = new Date();
-                       launch_time.setUTCFullYear(when.year - 1);
-                       launch_time.setUTCMonth(when.month);
+                       launch_time.setUTCFullYear(when.year);
+                       launch_time.setUTCMonth(when.month - 1);
                        launch_time.setUTCDate(when.day);
                        launch_time.setUTCHours(when.hour);
                        launch_time.setUTCMinutes(when.minute);
