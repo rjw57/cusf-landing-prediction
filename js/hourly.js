@@ -10,40 +10,118 @@ function init_map() {
         g_map_object = map;
 }
 
+function prediction_entry_convert_date(when) {
+        var time = new Date();
+        time.setUTCFullYear(when.year);
+        time.setUTCMonth(when.month - 1);
+        time.setUTCDate(when.day);
+        time.setUTCHours(when.hour);
+        time.setUTCMinutes(when.minute);
+        time.setUTCSeconds(when.second);
+        return time;
+}
+
+var g_prediction_polylines = { };
+function show_prediction(prediction) {
+        if(g_prediction_polylines[prediction.uuid] != null) { return; }
+
+        $.get('data/' + prediction.uuid + '/output.csv', null, function(data, textStatus) {
+                var lines = data.split('\n');
+                var path = [ ];
+                $.each(lines, function(idx, line) {
+                        entry = line.split(',');
+                        path.push( new google.maps.LatLng( entry[1], entry[2] ) );
+                });
+
+                var path_polyline = new google.maps.Polyline({
+                        path: path,
+                        strokeColor: '#000000',
+                        strokeWeight: 3,
+                        strokeOpacity: 0.75,
+                });
+                path_polyline.setMap(g_map_object);
+
+                google.maps.event.addListener(path_polyline, 'click', function() { 
+                        path_polyline.setMap( null );
+                        g_prediction_polylines[prediction.uuid] = null;
+                });
+
+                g_prediction_polylines[prediction.uuid] = path_polyline;
+        }, 'text');
+}
+
 function populate_map() {
-       $.getJSON('data/manifest.json', null, 
-       function(data) { 
-               $.each(data['predictions'], function(uuid, entry) {        
-                       where = entry['landing-location'];
-                       when = entry['launch-time'];
-                       // console.log('Prediction: ' + uuid + ' (' + where.latitude + ',' + where.longitude + ')');
+        $.getJSON('data/manifest.json', null, 
+        function(data) { 
+                var marker_image = new google.maps.MarkerImage('images/marker-sm-red.png',
+                        new google.maps.Size(11,11),
+                        new google.maps.Point(0,0), // origin
+                        new google.maps.Point(5.5,5.5)); // anchor
 
-                       var launch_time = new Date();
-                       launch_time.setUTCFullYear(when.year);
-                       launch_time.setUTCMonth(when.month - 1);
-                       launch_time.setUTCDate(when.day);
-                       launch_time.setUTCHours(when.hour);
-                       launch_time.setUTCMinutes(when.minute);
-                       launch_time.setUTCSeconds(when.second);
+                // extract the predictions to an array of uuid, entry pairs
+                var predictions = [];
+                $.each(data['predictions'], function(uuid, entry) { 
+                        predictions.push( { 'uuid': uuid, 'entry': entry } );
+                });
 
-                       var latlng = new google.maps.LatLng(
-                                where.latitude, where.longitude);
-                       var marker = new google.maps.Marker({
-                                position: latlng,
-                                map: g_map_object,
-                                title: launch_time.format('%d/%b/%Y %H:%M:%S'),
-                       });
-               });
+                // sort the predictions in order of date
+                predictions.sort(function(a,b) {
+                        var a_date = prediction_entry_convert_date(a.entry['launch-time']);
+                        var b_date = prediction_entry_convert_date(b.entry['launch-time']);
+                        if(a_date < b_date) { return -1; }
+                        if(a_date > b_date) { return 1; }
+                        return 0;
+                });
 
-               var template = data['scenario-template'];
-               $('#launch-lat').text(template['launch-site'].latitude);
-               $('#launch-lon').text(template['launch-site'].longitude);
-               $('#launch-alt').text(template['launch-site'].altitude);
-               $('#ascent-rate').text(template['altitude-model']['ascent-rate']);
-               $('#descent-rate').text(template['altitude-model']['descent-rate']);
-               $('#burst-alt').text(template['altitude-model']['burst-altitude']);
-       }
-       );
+                // Add each prediction to the map
+                var prediction_coords = [];
+                $.each(predictions, function(idx, prediction) {
+                        // console.log(prediction);
+                        var where = prediction.entry['landing-location'];
+                        var launch_time = prediction_entry_convert_date(prediction.entry['launch-time']);
+                        var landing_time = prediction_entry_convert_date(prediction.entry['landing-time']);
+                        var latlng = new google.maps.LatLng(
+                                 where.latitude, where.longitude);
+                        var marker = new google.maps.Marker({
+                                 position: latlng,
+                                 map: g_map_object,
+                                 icon: marker_image,
+                                 title: launch_time.format('%d/%b/%Y %H:%M:%S'),
+                        });
+                        prediction_coords.push(latlng);
+
+                        var info_window = new google.maps.InfoWindow({
+                                content: 
+                                        '<p><strong>Launch time:</strong> ' + launch_time.format('%d/%b/%Y %H:%M:%S') + '</p>' +
+                                        '<p><strong>Landing time:</strong> ' + landing_time.format('%d/%b/%Y %H:%M:%S') + '</p>' +
+                                        '<p><a target="_new" href="data/' + prediction.uuid + '/">Raw output data</a> (opens in new window)</p>'
+                        });
+                        google.maps.event.addListener(marker, 'click', function() { 
+                                show_prediction(prediction);
+                        });
+                        google.maps.event.addListener(marker, 'rightclick', function() { 
+                                info_window.open(g_map_object, marker); 
+                        });
+                });
+
+                // Plot a path for the predictions
+                var pred_path = new google.maps.Polyline({
+                        path: prediction_coords,
+                        strokeColor: '#ff4444',
+                        strokeOpacity: 0.5,
+                        strokeWeight: 2,
+                });
+                pred_path.setMap(g_map_object);
+ 
+                var template = data['scenario-template'];
+                $('#launch-lat').text(template['launch-site'].latitude);
+                $('#launch-lon').text(template['launch-site'].longitude);
+                $('#launch-alt').text(template['launch-site'].altitude);
+                $('#ascent-rate').text(template['altitude-model']['ascent-rate']);
+                $('#descent-rate').text(template['altitude-model']['descent-rate']);
+                $('#burst-alt').text(template['altitude-model']['burst-altitude']);
+        }
+        );
 }
 
 function generateLinks(uuid) {

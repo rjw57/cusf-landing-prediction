@@ -19,6 +19,11 @@ body {
 	border-left: none;
 	border-bottom: none;
 	padding: 0.25em 1em;
+	width: 27em;
+}
+
+#scenario_template table { 
+	margin: 0.25em auto;
 }
 
 #scenario_template td { 
@@ -28,7 +33,12 @@ body {
 #scenario_template h1 { 
 	font-size: 100%;
 	text-align: center;
-	margin: 0.25em 0em 0.75em 0em;
+	margin: 0.25em 0em;
+}
+
+#scenario_template p { 
+	margin: 0; 
+	margin-bottom: 0.25em; 
 }
 
 td.right-td {
