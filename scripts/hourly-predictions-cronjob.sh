@@ -8,10 +8,10 @@
 ROOT=/societies/cuspaceflight/
 
 # The script itself
-HOURLYSCRIPT=${ROOT}/git/cusf-srcf/run-hourly-predictions.py
+HOURLYSCRIPT=${ROOT}/git/cusf-landing-prediction/scripts/run-hourly-predictions.py
 
 # Where to run the script
-WORKINGDIR=${ROOT}/git/cusf-srcf/
+WORKINGDIR=${ROOT}/git/cusf-landing-prediction/scripts/
 
 # Output
 OUTPUTDIR=${ROOT}/public_html/hourly-predictions/
