@@ -38,6 +38,7 @@ int main(int argc, const char *argv[]) {
     float initial_lat, initial_lng, initial_alt;
     float burst_alt, ascent_rate, drag_coeff, rmswinderror;
     int descent_mode;
+    int scenario_idx;
     char* endptr;       // used to check for errors on strtod calls 
     
     wind_file_cache_t* file_cache;
@@ -59,7 +60,7 @@ int main(int argc, const char *argv[]) {
     if (gopt(options, 'h')) {
         // Help!
         // Print usage information
-        printf("Usage: %s [options] [scenario file]\n", argv[0]);
+        printf("Usage: %s [options] [scenario files]\n", argv[0]);
         printf("Options:\n\n");
         printf(" -h --help               Display this information.\n");
         printf(" --version               Display version information.\n");
@@ -67,7 +68,7 @@ int main(int argc, const char *argv[]) {
         printf("                           Use -vv, -vvv etc. for even more verbose output.\n");
         printf(" -t --start_time <int>   Start time of model, defaults to current time.\n");
         printf("                           Should be a UNIX standard format timestamp.\n");
-        printf(" -o --output <file>      Output file for CSV data, defaults to stdout.\n");
+        printf(" -o --output <file>      Output file for CSV data, defaults to stdout. Overrides scenario.\n");
         printf(" -k --kml <file>         Output KML file.\n");
         printf(" -d --descending         We are in the descent phase of the flight, i.e. after\n");
         printf("                           burst or cutdown. burst_alt and ascent_rate ignored.\n");
@@ -90,16 +91,6 @@ int main(int argc, const char *argv[]) {
         descent_mode = DESCENT_MODE_DESCENDING;
     else
         descent_mode = DESCENT_MODE_NORMAL;
-    
-    if (gopt_arg(options, 'o', &argument) && strcmp(argument, "-")) {
-      output = fopen(argument, "wb");
-      if (!output) {
-        fprintf(stderr, "ERROR: %s: could not open CSV file for output\n", argument);
-        exit(1);
-      }
-    }
-    else
-      output = stdout;
       
     if (gopt_arg(options, 'k', &argument) && strcmp(argument, "-")) {
       kml_file = fopen(argument, "wb");
@@ -127,150 +118,180 @@ int main(int argc, const char *argv[]) {
 
     // populate wind data file cache
     file_cache = wind_file_cache_new(data_dir);
-    
-    // write KML header
-    if (kml_file)
-        start_kml();
 
     // read in flight parameters
-    if(argc > 2) {
-        fprintf(stderr, "ERROR: too many parameters, run %s -h for usage information\n", argv[0]);
-        exit(1);
-    }
-
     if(argc == 1) {
         fprintf(stderr, "ERROR: scenarios from stdin not yet supported, sorry.\n");
         exit(1);
     }
 
-    scenario = iniparser_load(argv[1]);
-    if(!scenario) {
-        fprintf(stderr, "ERROR: could not parse scanario file.\n");
-        exit(1);
-    }
+    for(scenario_idx = 1; scenario_idx < argc; ++scenario_idx) {
+        char* scenario_output = NULL;
 
-    if(verbosity > 1) {
-        fprintf(stderr, "INFO: Parsed scenario file:\n");
-        iniparser_dump_ini(scenario, stderr);
-    }
+        scenario = iniparser_load(argv[scenario_idx]);
 
-    // The observant amongst you will notice that there are default values for
-    // *all* keys. This information should not be spread around too well.
-    // Unfortunately, this means we lack some error checking.
-
-    initial_lat = iniparser_getdouble(scenario, "launch-site:latitude", 0.0);
-    initial_lng = iniparser_getdouble(scenario, "launch-site:longitude", 0.0);
-    initial_alt = iniparser_getdouble(scenario, "launch-site:altitude", 0.0);
-
-    ascent_rate = iniparser_getdouble(scenario, "altitude-model:ascent-rate", 1.0);
-
-    // The 1.1045 comes from a magic constant buried in
-    // ~cuspaceflight/public_html/predict/index.php.
-    drag_coeff = iniparser_getdouble(scenario, "altitude-model:descent-rate", 1.0) * 1.1045;
-
-    burst_alt = iniparser_getdouble(scenario, "altitude-model:burst-altitude", 1.0);
-
-    rmswinderror = iniparser_getdouble(scenario, "atmosphere:wind-error", 0.0);
-    if(gopt_arg(options, 'e', &argument) && strcmp(argument, "-")) {
-        rmswinderror = strtod(argument, &endptr);
-        if (endptr == argument) {
-            fprintf(stderr, "ERROR: %s: invalid RMS wind speed error\n", argument);
+        if(!scenario) {
+            fprintf(stderr, "ERROR: could not parse scanario file.\n");
             exit(1);
         }
-    }
 
-    {
-        int year, month, day, hour, minute, second;
-        year = iniparser_getint(scenario, "launch-time:year", -1);
-        month = iniparser_getint(scenario, "launch-time:month", -1);
-        day = iniparser_getint(scenario, "launch-time:day", -1);
-        hour = iniparser_getint(scenario, "launch-time:hour", -1);
-        minute = iniparser_getint(scenario, "launch-time:minute", -1);
-        second = iniparser_getint(scenario, "launch-time:second", -1);
+        if(verbosity > 1) {
+            fprintf(stderr, "INFO: Parsed scenario file:\n");
+            iniparser_dump_ini(scenario, stderr);
+        }
 
-        if((year >= 0) && (month >= 0) && (day >= 0) && (hour >= 0)
-                && (minute >= 0) && (second >= 0)) 
-        {
-            struct tm timeval = { 0 };
-            time_t scenario_launch_time = -1;
+        scenario_output = iniparser_getstring(scenario, "output:filename", NULL);
 
+        if (gopt_arg(options, 'o', &argument) && strcmp(argument, "-")) {
             if(verbosity > 0) {
-                fprintf(stderr, "INFO: Using launch time from scenario: "
-                        "%i/%i/%i %i:%i:%i\n",
-                        year, month, day, hour, minute, second);
+                fprintf(stderr, "INFO: Writing output to file specified on command line: %s\n", argument);
             }
+            output = fopen(argument, "wb");
+            if (!output) {
+                fprintf(stderr, "ERROR: %s: could not open CSV file for output\n", argument);
+                exit(1);
+            }
+        } else if (scenario_output != NULL) {
+            if(verbosity > 0) {
+                fprintf(stderr, "INFO: Writing output to file specified in scenario: %s\n", scenario_output);
+            }
+            output = fopen(scenario_output, "wb");
+            if (!output) {
+                fprintf(stderr, "ERROR: %s: could not open CSV file for output\n", scenario_output);
+                exit(1);
+            }
+        } else {
+            if(verbosity > 0) {
+                fprintf(stderr, "INFO: Writing output to stdout.\n");
+            }
+            output = stdout;
+        }
 
-            timeval.tm_sec = second;
-            timeval.tm_min = minute;
-            timeval.tm_hour = hour;
-            timeval.tm_mday = day; /* 1 - 31 */
-            timeval.tm_mon = month - 1; /* 0 - 11 */
-            timeval.tm_year = year - 1900; /* fuck you Millenium Bug! */
+        // write KML header
+        if (kml_file)
+            start_kml();
+
+        // The observant amongst you will notice that there are default values for
+        // *all* keys. This information should not be spread around too well.
+        // Unfortunately, this means we lack some error checking.
+
+        initial_lat = iniparser_getdouble(scenario, "launch-site:latitude", 0.0);
+        initial_lng = iniparser_getdouble(scenario, "launch-site:longitude", 0.0);
+        initial_alt = iniparser_getdouble(scenario, "launch-site:altitude", 0.0);
+
+        ascent_rate = iniparser_getdouble(scenario, "altitude-model:ascent-rate", 1.0);
+
+        // The 1.1045 comes from a magic constant buried in
+        // ~cuspaceflight/public_html/predict/index.php.
+        drag_coeff = iniparser_getdouble(scenario, "altitude-model:descent-rate", 1.0) * 1.1045;
+
+        burst_alt = iniparser_getdouble(scenario, "altitude-model:burst-altitude", 1.0);
+
+        rmswinderror = iniparser_getdouble(scenario, "atmosphere:wind-error", 0.0);
+        if(gopt_arg(options, 'e', &argument) && strcmp(argument, "-")) {
+            rmswinderror = strtod(argument, &endptr);
+            if (endptr == argument) {
+                fprintf(stderr, "ERROR: %s: invalid RMS wind speed error\n", argument);
+                exit(1);
+            }
+        }
+
+        {
+            int year, month, day, hour, minute, second;
+            year = iniparser_getint(scenario, "launch-time:year", -1);
+            month = iniparser_getint(scenario, "launch-time:month", -1);
+            day = iniparser_getint(scenario, "launch-time:day", -1);
+            hour = iniparser_getint(scenario, "launch-time:hour", -1);
+            minute = iniparser_getint(scenario, "launch-time:minute", -1);
+            second = iniparser_getint(scenario, "launch-time:second", -1);
+
+            if((year >= 0) && (month >= 0) && (day >= 0) && (hour >= 0)
+                    && (minute >= 0) && (second >= 0)) 
+            {
+                struct tm timeval = { 0 };
+                time_t scenario_launch_time = -1;
+
+                if(verbosity > 0) {
+                    fprintf(stderr, "INFO: Using launch time from scenario: "
+                            "%i/%i/%i %i:%i:%i\n",
+                            year, month, day, hour, minute, second);
+                }
+
+                timeval.tm_sec = second;
+                timeval.tm_min = minute;
+                timeval.tm_hour = hour;
+                timeval.tm_mday = day; /* 1 - 31 */
+                timeval.tm_mon = month - 1; /* 0 - 11 */
+                timeval.tm_year = year - 1900; /* fuck you Millenium Bug! */
 
 #ifndef _BSD_SOURCE
-#           warning This version of mktime does not allow explicit setting of timezone. 
+#               warning This version of mktime does not allow explicit setting of timezone. 
 #else
-            timeval.tm_zone = "UTC";
+                timeval.tm_zone = "UTC";
 #endif
 
-            scenario_launch_time = mktime(&timeval);
-            if(scenario_launch_time <= 0) {
-                fprintf(stderr, "WARN: Launch time in scenario is invalid, reverting to "
-                        "default timestamp.\n");
-            } else {
-                initial_timestamp = scenario_launch_time;
+                scenario_launch_time = mktime(&timeval);
+                if(scenario_launch_time <= 0) {
+                    fprintf(stderr, "WARN: Launch time in scenario is invalid, reverting to "
+                            "default timestamp.\n");
+                } else {
+                    initial_timestamp = scenario_launch_time;
+                }
             }
         }
-    }
 
-    if(verbosity > 0) {
-        fprintf(stderr, "INFO: Scenario loaded:\n");
-        fprintf(stderr, "    - Initial latitude  : %lf deg N\n", initial_lat);
-        fprintf(stderr, "    - Initial longitude : %lf deg E\n", initial_lng);
-        fprintf(stderr, "    - Initial altitude  : %lf m above sea level\n", initial_alt);
-        fprintf(stderr, "    - Initial timestamp : %li\n", initial_timestamp);
-        fprintf(stderr, "    - Drag coeff.       : %lf\n", drag_coeff);
-        if(!descent_mode) {
-            fprintf(stderr, "    - Ascent rate       : %lf m/s\n", ascent_rate);
-            fprintf(stderr, "    - Burst alt.        : %lf m\n", burst_alt);
+        if(verbosity > 0) {
+            fprintf(stderr, "INFO: Scenario loaded:\n");
+            fprintf(stderr, "    - Initial latitude  : %lf deg N\n", initial_lat);
+            fprintf(stderr, "    - Initial longitude : %lf deg E\n", initial_lng);
+            fprintf(stderr, "    - Initial altitude  : %lf m above sea level\n", initial_alt);
+            fprintf(stderr, "    - Initial timestamp : %li\n", initial_timestamp);
+            fprintf(stderr, "    - Drag coeff.       : %lf\n", drag_coeff);
+            if(!descent_mode) {
+                fprintf(stderr, "    - Ascent rate       : %lf m/s\n", ascent_rate);
+                fprintf(stderr, "    - Burst alt.        : %lf m\n", burst_alt);
+            }
+            fprintf(stderr, "    - Windspeed err.    : %f m/s\n", rmswinderror);
         }
-        fprintf(stderr, "    - Windspeed err.    : %f m/s\n", rmswinderror);
+        
+        {
+            // do the actual stuff!!
+            altitude_model_t* alt_model = altitude_model_new(descent_mode, burst_alt, 
+                                                             ascent_rate, drag_coeff);
+            if(!alt_model) {
+                    fprintf(stderr, "ERROR: error initialising altitude profile\n");
+                    exit(1);
+            }
+
+            if (!run_model(file_cache, alt_model, 
+                           initial_lat, initial_lng, initial_alt, initial_timestamp,
+                           rmswinderror)) {
+                    fprintf(stderr, "ERROR: error during model run!\n");
+                    exit(1);
+            }
+
+            altitude_model_free(alt_model);
+        }
+
+        // release the scenario
+        iniparser_freedict(scenario);
+        
+        // write footer to KML and close output files
+        if (kml_file) {
+            finish_kml();
+            fclose(kml_file);
+        }
+
+        if (output != stdout) {
+            fclose(output);
+        }
     }
 
     // release gopt data, 
     gopt_free(options);
-    
-    {
-        // do the actual stuff!!
-        altitude_model_t* alt_model = altitude_model_new(descent_mode, burst_alt, 
-                                                         ascent_rate, drag_coeff);
-        if(!alt_model) {
-                fprintf(stderr, "ERROR: error initialising altitude profile\n");
-                exit(1);
-        }
-
-        if (!run_model(file_cache, alt_model, 
-                       initial_lat, initial_lng, initial_alt, initial_timestamp,
-                       rmswinderror)) {
-                fprintf(stderr, "ERROR: error during model run!\n");
-                exit(1);
-        }
-
-        altitude_model_free(alt_model);
-    }
-    
-    // write footer to KML and close output files
-    if (kml_file) {
-        finish_kml();
-        fclose(kml_file);
-    }
-    fclose(output);
 
     // release the file cache resources.
     wind_file_cache_free(file_cache);
-
-    // selease the scenario
-    iniparser_freedict(scenario);
 
     return 0;
 }
