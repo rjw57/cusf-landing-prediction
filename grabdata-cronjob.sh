@@ -5,7 +5,9 @@
 # Original version by: Rich Wareham <rjw57@cam.ac.uk>
 
 # The root where the various utilities are based.
-ROOT=/societies/cuspaceflight/
+if [ "${ROOT}x" == "x" ]; then
+	ROOT=/societies/cuspaceflight/
+fi
 
 # The get data script itself
 GETDATA=${ROOT}/git/cusf-landing-prediction/pydap/get_wind_data.py
