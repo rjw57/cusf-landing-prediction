@@ -28,9 +28,16 @@ function show_prediction(prediction) {
         $.get('data/' + prediction.uuid + '/output.csv', null, function(data, textStatus) {
                 var lines = data.split('\n');
                 var path = [ ];
+                var max_height = -10;
+                var max_point = null;
                 $.each(lines, function(idx, line) {
                         entry = line.split(',');
-                        path.push( new google.maps.LatLng( entry[1], entry[2] ) );
+                        var point = new google.maps.LatLng( parseFloat(entry[1]), parseFloat(entry[2]) );
+                        if(parseFloat(entry[3]) > max_height) {
+                                max_height = parseFloat(entry[3]);
+                                max_point = point;
+                        }
+                        path.push(point);
                 });
 
                 var path_polyline = new google.maps.Polyline({
@@ -41,8 +48,20 @@ function show_prediction(prediction) {
                 });
                 path_polyline.setMap(g_map_object);
 
+                var pop_icon = new google.maps.MarkerImage('images/pop-marker.png',
+                        new google.maps.Size(16, 16),
+                        new google.maps.Point(0, 0),
+                        new google.maps.Point(8, 8));
+                var pop_marker = new google.maps.Marker({
+                        position: max_point,
+                        map: g_map_object,
+                        icon: pop_icon,
+                        title: 'Baloon burst (max. altitude: ' + max_height + 'm)',
+                });
+
                 google.maps.event.addListener(path_polyline, 'click', function() { 
                         path_polyline.setMap( null );
+                        pop_marker.setMap( null );
                         g_prediction_polylines[prediction.uuid] = null;
                 });
 
@@ -94,6 +113,7 @@ function populate_map() {
                                 content: 
                                         '<p><strong>Launch time:</strong> ' + launch_time.format('%d/%b/%Y %H:%M:%S') + '</p>' +
                                         '<p><strong>Landing time:</strong> ' + landing_time.format('%d/%b/%Y %H:%M:%S') + '</p>' +
+                                        '<p><strong>Landing location:</strong> ' + where.latitude + '&deg;N ' + where.longitude + '&deg;E</p>' +
                                         '<p><a target="_new" href="data/' + prediction.uuid + '/">Raw output data</a> (opens in new window)</p>'
                         });
                         google.maps.event.addListener(marker, 'click', function() { 

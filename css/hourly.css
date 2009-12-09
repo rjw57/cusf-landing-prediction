@@ -19,26 +19,33 @@ body {
 	border-left: none;
 	border-bottom: none;
 	padding: 0.25em 1em;
-	width: 27em;
+}
+
+#scenario_template * {
+	font-size: 12px;
+}
+
+#scenario_template { 
+	background: rgba(255,255,255,0.75); /* for more modern browsers */
 }
 
 #scenario_template table { 
 	margin: 0.25em auto;
+	white-space: nowrap;
 }
 
 #scenario_template td { 
-	font-size: 80%;
 }
 
 #scenario_template h1 { 
-	font-size: 100%;
 	text-align: center;
 	margin: 0.25em 0em;
 }
 
 #scenario_template p { 
-	margin: 0; 
+	margin: 0 auto;
 	margin-bottom: 0.25em; 
+	width: 25em;
 }
 
 td.right-td {
