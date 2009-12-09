@@ -10,3 +10,6 @@ pydap/pydap-cache/
 cmake_install.cmake
 test/output.csv
 test/scanario-1-output.csv
+data
+new
+logs
