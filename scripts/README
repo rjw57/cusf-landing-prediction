@@ -1,0 +1,4 @@
+This repository contains various useful glue scripts/cronjobs which are used to
+maintain the CUSF services on the SRCF.
+
+-- Rich Wareham <rjw57@cam.ac.uk>

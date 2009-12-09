@@ -1,0 +1,15 @@
+{
+  "launch-site": {
+    "latitude"       : 52.2135, // degrees
+    "longitude"      : 0.0964,  // degrees
+    "altitude"       : 0,       // metres
+  },
+  "atmosphere": {
+    "wind-error"     : 0,       // m/s - RMS error for windspeed
+  },
+  "altitude-model": {
+    "ascent-rate"    : 3,       // m/s
+    "descent-rate"   : 5,       // m/s
+    "burst-altitude" : 30000,   // m
+  },
+}
