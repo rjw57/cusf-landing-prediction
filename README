@@ -16,7 +16,7 @@ http://www.cuspaceflight.co.uk/wiki/
 BUILDING
 -------------------
 
-Under Linux/Mac OS X simply type "make" at the command prompt.
+Under Linux/Mac OS X simply type "cmake . && make" at the command prompt.
 
 For Windows please see the wiki for up to date information.
 
@@ -26,6 +26,6 @@ For Windows please see the wiki for up to date information.
 USAGE
 -------------------
 
-Type "./pred -h" at the command prompt for usage information.
+Type "./pred_src/pred -h" at the command prompt for usage information.
 
 Again, more information and examples are on the wiki.
