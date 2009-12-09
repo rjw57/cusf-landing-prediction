@@ -38,7 +38,7 @@ int main(int argc, const char *argv[]) {
     float initial_lat, initial_lng, initial_alt;
     float burst_alt, ascent_rate, drag_coeff, rmswinderror;
     int descent_mode;
-    int scenario_idx;
+    int scenario_idx, n_scenarios;
     char* endptr;       // used to check for errors on strtod calls 
     
     wind_file_cache_t* file_cache;
@@ -120,15 +120,20 @@ int main(int argc, const char *argv[]) {
     file_cache = wind_file_cache_new(data_dir);
 
     // read in flight parameters
-    if(argc == 1) {
-        fprintf(stderr, "ERROR: scenarios from stdin not yet supported, sorry.\n");
-        exit(1);
+    n_scenarios = argc - 1;
+    if(n_scenarios == 0) {
+        // we'll parse from std in
+        n_scenarios = 1;
     }
 
-    for(scenario_idx = 1; scenario_idx < argc; ++scenario_idx) {
+    for(scenario_idx = 0; scenario_idx < n_scenarios; ++scenario_idx) {
         char* scenario_output = NULL;
 
-        scenario = iniparser_load(argv[scenario_idx]);
+        if(argc > scenario_idx+1) {
+            scenario = iniparser_load(argv[scenario_idx+1]);
+        } else {
+            scenario = iniparser_loadfile(stdin);
+        }
 
         if(!scenario) {
             fprintf(stderr, "ERROR: could not parse scanario file.\n");
