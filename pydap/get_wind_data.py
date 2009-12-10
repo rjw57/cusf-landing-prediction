@@ -6,9 +6,6 @@ import datetime, math, sys, os, logging, calendar, optparse
 # We use Pydap from http://pydap.org/.
 import pydap.exceptions, pydap.client, pydap.lib
 
-# Attempt to cache the downloaded data.
-pydap.lib.CACHE = os.path.dirname(__file__) + '/pydap-cache/'
-
 # Output logger format
 log = logging.getLogger('main')
 console = logging.StreamHandler()
