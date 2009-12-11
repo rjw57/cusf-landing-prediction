@@ -53,3 +53,8 @@ if [ -d ${DATADIR} ]; then
 fi
 mv ${NEWDIR} ${DATADIR}
 rm -rf ${TMPDIR}
+
+# Now set the group and permissions for the data dir
+chgrp -R cuspaceflight ${DATADIR}
+chmod -R g+rw ${DATADIR}
+
