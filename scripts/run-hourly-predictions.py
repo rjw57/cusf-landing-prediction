@@ -8,7 +8,8 @@ import config, site
 # Add our local packages to the path
 site.addsitedir(config.CUSF_PYTHON_PATH)
 
-import logging, glob, os, time, datetime, uuid, subprocess, demjson, shutil
+import logging, glob, os, time, datetime, uuid, subprocess, demjson
+import shutil, traceback
 
 logging.basicConfig(level = logging.INFO)
 
@@ -201,17 +202,20 @@ def main():
 
     while predict_time < end_time:
         if predict_time >= start_time:
-            logging.info('Run prediction for %s.' % predict_time.ctime())
-            (uuid, entry) = run_prediction(predict_time, pred_root, scenario_template)
+            try:
+                logging.info('Run prediction for %s.' % predict_time.ctime())
+                (uuid, entry) = run_prediction(predict_time, pred_root, scenario_template)
 
-            # Record in manifest
-            manifest['predictions'][uuid] = entry
-            open(manifest_filename, 'w').write(demjson.encode(manifest))
+                # Record in manifest
+                manifest['predictions'][uuid] = entry
+                open(manifest_filename, 'w').write(demjson.encode(manifest))
 
-            logging.info('Prediction finished. Sleeping to save CPU...')
-            
-            # Sleep so we don't use massive amounts of CPU
-            # time.sleep(2)
+                logging.info('Prediction finished. Sleeping to save CPU...')
+                
+                # Sleep so we don't use massive amounts of CPU
+                # time.sleep(2)
+            except Exception:
+                traceback.print_exc()
 
         predict_time += one_hour
 
