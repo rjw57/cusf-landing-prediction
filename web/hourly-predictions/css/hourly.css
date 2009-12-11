@@ -11,41 +11,48 @@ body {
 /* The whoppping map in the centre */
 #map_canvas { width: 100%; height: 100%; }
 
-#scenario_template { 
+.box {
 	position: absolute; 
-	left: 0; bottom: 0; 
 	background-color: white; 
-	border: 1px solid #8888ff; 
-	border-left: none;
-	border-bottom: none;
-	padding: 0.25em 1em;
+	border: 1px solid #6666ff; 
+	padding: 0.5em;
 }
 
-#scenario_template * {
-	font-size: 12px;
-}
-
-#scenario_template { 
+.box {
 	background: rgba(255,255,255,0.75); /* for more modern browsers */
 }
 
-#scenario_template table { 
+.box * {
+	font-size: 12px;
+}
+
+.box table { 
 	margin: 0.25em auto;
 	white-space: nowrap;
 }
 
-#scenario_template td { 
-}
-
-#scenario_template h1 { 
+.box h1 { 
 	text-align: center;
-	margin: 0.25em 0em;
+	margin: 0em 0em 0.5em 0em;
 }
 
-#scenario_template p { 
+.box p { 
 	margin: 0 auto;
 	margin-bottom: 0.25em; 
 	width: 25em;
+}
+
+#trail_table { 
+	right: 0; bottom: 0;
+	border-right: none;
+	border-bottom: none;
+	display: none;
+}
+
+#scenario_template { 
+	left: 0; bottom: 0; 
+	border-left: none;
+	border-bottom: none;
 }
 
 td.right-td {
@@ -54,4 +61,19 @@ td.right-td {
 
 td.spacer {
 	width: 1em;
+}
+
+table#trails {
+	border-collapse: collapse;
+}
+
+table#trails td, table#trails th { 
+	border: 1px solid #6666ff;
+	padding: 0.1em 0.5em;
+	text-align: center;
+}
+
+table#trails th { 
+	background-color: #6666ff;
+	color: white;
 }

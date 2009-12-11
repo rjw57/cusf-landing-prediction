@@ -21,23 +21,25 @@ function prediction_entry_convert_date(when) {
         return time;
 }
 
-var g_prediction_polylines = { };
-function show_prediction(prediction) {
-        if(g_prediction_polylines[prediction.uuid] != null) { return; }
+var g_predictions = { };
+function show_prediction(uuid, launch_time, landing_time) {
+        if(g_predictions[uuid] != null) { return; }
 
-        $.get('data/' + prediction.uuid + '/output.csv', null, function(data, textStatus) {
+        $.get('data/' + uuid + '/output.csv', null, function(data, textStatus) {
                 var lines = data.split('\n');
                 var path = [ ];
                 var max_height = -10;
                 var max_point = null;
                 $.each(lines, function(idx, line) {
                         entry = line.split(',');
-                        var point = new google.maps.LatLng( parseFloat(entry[1]), parseFloat(entry[2]) );
-                        if(parseFloat(entry[3]) > max_height) {
-                                max_height = parseFloat(entry[3]);
-                                max_point = point;
+                        if(entry.length >= 4) {
+                                var point = new google.maps.LatLng( parseFloat(entry[1]), parseFloat(entry[2]) );
+                                if(parseFloat(entry[3]) > max_height) {
+                                        max_height = parseFloat(entry[3]);
+                                        max_point = point;
+                                }
+                                path.push(point);
                         }
-                        path.push(point);
                 });
 
                 var path_polyline = new google.maps.Polyline({
@@ -52,6 +54,7 @@ function show_prediction(prediction) {
                         new google.maps.Size(16, 16),
                         new google.maps.Point(0, 0),
                         new google.maps.Point(8, 8));
+
                 var pop_marker = new google.maps.Marker({
                         position: max_point,
                         map: g_map_object,
@@ -60,15 +63,59 @@ function show_prediction(prediction) {
                 });
 
                 google.maps.event.addListener(path_polyline, 'click', function() { 
-                        path_polyline.setMap( null );
-                        pop_marker.setMap( null );
-                        g_prediction_polylines[prediction.uuid] = null;
+                        hide_prediction(uuid);
                 });
 
-                g_prediction_polylines[prediction.uuid] = path_polyline;
+                google.maps.event.addListener(pop_marker, 'click', function() { 
+                        hide_prediction(uuid);
+                });
+
+                // Add a row to the prediction table
+
+                var new_row = $(
+                'table#trails tbody').append('<tr id="trail-row-' + uuid + '">' +
+                '<td>' + launch_time.format('%a %d/%b/%Y') + '</td>' +
+                '<td>' + launch_time.format('%H:%M:%S') + '</td>' +
+                '<td>' + ((landing_time - launch_time) / (1000*60*60)).toPrecision(3) + ' hrs</td>' +
+                '<td>' + 
+                        '<a href="#" onclick="hide_prediction(\''+uuid+'\')">hide</a>&nbsp;' +
+                        '<a href="#" onclick="show_info(\''+uuid+'\')">info</a>' +
+                '</td>' +
+                '</tr>');
+
+                g_predictions[uuid] = { 'polyline': path_polyline, 'row': new_row, 'pop_marker': pop_marker };
+                $('#trail_table').fadeIn('normal'); 
         }, 'text');
 }
 
+function hide_prediction(uuid) {
+        var prediction = g_predictions[uuid];
+        if(prediction == null) { return; }
+
+        g_predictions[prediction.uuid] = null;
+
+        prediction.polyline.setMap( null );
+        prediction.pop_marker.setMap( null );
+        
+        var table_rows = $('table#trails tr').filter(function() { return this.id.match(/^trail-row-/); });
+        var this_row = $('table#trails #trail-row-' + uuid);
+
+        if(table_rows.length > 1) {
+                // If there is more than just this row, fade it out
+                this_row.fadeOut('normal', function() { this_row.remove(); } );
+        } else {
+                // fade the whole table.
+                $('#trail_table').fadeOut('normal', function() { this_row.remove(); });
+        }
+}
+
+function show_info(uuid) {
+        var map_objects = g_prediction_map_objects[uuid];
+        if(map_objects == null) { return; }
+        map_objects.info_window.open(g_map_object, map_objects.marker);
+}
+
+var g_prediction_map_objects = [];
 function populate_map() {
         $.getJSON('data/manifest.json', null, 
         function(data) { 
@@ -105,7 +152,7 @@ function populate_map() {
                                  position: latlng,
                                  map: g_map_object,
                                  icon: marker_image,
-                                 title: launch_time.format('%d/%b/%Y %H:%M:%S'),
+                                 title: launch_time.format('%a %d/%b/%Y %H:%M:%S'),
                         });
                         prediction_coords.push(latlng);
 
@@ -116,12 +163,18 @@ function populate_map() {
                                         '<p><strong>Landing location:</strong> ' + where.latitude + '&deg;N ' + where.longitude + '&deg;E</p>' +
                                         '<p><a target="_new" href="data/' + prediction.uuid + '/">Raw output data</a> (opens in new window)</p>'
                         });
+
                         google.maps.event.addListener(marker, 'click', function() { 
-                                show_prediction(prediction);
+                                show_prediction(prediction.uuid, launch_time, landing_time);
                         });
                         google.maps.event.addListener(marker, 'rightclick', function() { 
                                 info_window.open(g_map_object, marker); 
                         });
+
+                        g_prediction_map_objects[prediction.uuid] = {
+                                'info_window': info_window,
+                                'marker': marker,
+                        };
                 });
 
                 // Plot a path for the predictions
