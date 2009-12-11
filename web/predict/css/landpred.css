@@ -1,75 +1,56 @@
-/* Basic font-size and family. */
-html {
+.ui-widget {
 	font-family: sans-serif;
-	font-size: 12px;
-	width: 100%; height: 100%;
+	font-size: 10pt;
 }
 
-body {
-	margin: 0; padding: 0;
+/* The whopping map in the centre */
+#map_canvas { 
+	width: 100%; height: 100%; 
+	position: absolute; 
+	left: 0; top: 0; bottom: 0; right: 0; 
 }
 
-/* The whoppping map in the centre */
-#map_canvas { width: 100%; height: 100%; position: absolute; left: 0; top: 0; bottom: 0; right: 0; }
-
-#prediction-running {
+#new_prediction {
 	position: absolute;
-	left: 0; right: 0; top: 0; bottom: 0;
+	padding: 0.5em;
 	display: none;
-}
-
-#prediction-message {
-	position: relative;
-	background-color: white;
-	margin: auto;
-	top: 33%;
-	width: 50%;
-	padding: 1em;
-	padding-bottom: 0.2em;
-	text-align: center;
-	font-weight: bold;
-}
-
-#prediction-throbber {
-	width: 32px;
-	height: 32px;
-	margin: auto;
-	background-image: url('../images/throbber.gif');
-	background-repeat: no-repeat;
-	background-position: center;
-}
-
-#new_prediction { 
-	position: relative; 
-	overflow: hidden;
-	width: 35em;
-}
-
-#scenario_table { 
-	width: 100%; 
 }
 
 #toolbox { 
 	position: absolute;
-	left: 0;
-	bottom: 0;
-	padding: 0.1em;
-	padding-left: 0em;
+	right: 6px;
+	top: 30px;
 }
 
 #toolbox a {
+	float: right;
 	display: block;
 	margin: 0.1em;
 	padding: 0.3em;
 	text-decoration: none;
 }
 
-.ui-header {
-	padding: 0.3em;
-	text-align: center;
-	display: none;
-}
-
 td.field-value {
 	text-align: right;
+}
+
+td.button-box {
+	text-align: right;
+	vertical-align: bottom;
+	padding: 0.5em 0em 0em 0em;
+}
+
+#prediction-running {
+	display: none;
+	position: absolute;
+	bottom: 0.75em;
+	background-image: url('../images/throbber.gif');
+	background-repeat: no-repeat;
+	background-position: center left;
+	padding-left: 20px;
+	margin-left: 0.25em;
+}
+
+span.ui-icon {
+	float: right;
 }

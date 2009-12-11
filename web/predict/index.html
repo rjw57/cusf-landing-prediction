@@ -1,12 +1,11 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
-    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
-<meta name="generator" content=
-"HTML Tidy for Linux (vers 6 November 2007), see www.w3.org" />
+<meta name="generator" content="HTML Tidy for Linux (vers 6 November 2007), see www.w3.org" />
 <title>CUSF landing prediction</title>
-<link href="http://ajax.googleapis.com/ajax/libs/jqueryui/1.7.2/themes/cupertino/jquery-ui.css" type="text/css" rel="stylesheet">
-<link href="css/landpred.css" type="text/css" rel="stylesheet">
+<link href="http://ajax.googleapis.com/ajax/libs/jqueryui/1.7.2/themes/smoothness/jquery-ui.css" type="text/css" rel="stylesheet" />
+<link href="css/landpred.css" type="text/css" rel="stylesheet" />
 <script src="http://ajax.googleapis.com/ajax/libs/mootools/1.2.4/mootools-yui-compressed.js" type="text/javascript">
 </script>
 <script src="js/mootools-1.2.4.2-more.js" type="text/javascript">
@@ -15,88 +14,77 @@
 </script>
 <script src="http://ajax.googleapis.com/ajax/libs/jqueryui/1.7.2/jquery-ui.min.js" type="text/javascript">
 </script>
-<script src="js/jquery.form.js" type="text/javascript"></script>
+<script src="js/jquery.form.js" type="text/javascript">
+</script>
 <script src="http://maps.google.com/maps/api/js?sensor=false" type="text/javascript">
 </script>
 <script src="js/landpred.js" type="text/javascript">
 </script>
 </head>
 <body>
-  <div id="map_canvas"></div>
-  <div id="new_prediction" title="New prediction">
-  <div id="prediction-running" class="ui-corner-all">
-  	<div class="ui-widget-overlay"></div>
-	<div id="prediction-message" class="ui-widget ui-widget-content">
-	<div id="prediction-throbber"></div>
-	<p>Running prediction&hellip;</p>
-	</div>
-  </div>
-    <form id="scenario" name="scenario" action="runpred.cgi" method="post">
-      <table summary="Scenario parameters" id="scenario_table">
-        <tr>
-          <th colspan="3">Launch site</th>
-        </tr>
-
-        <tr>
-          <td>Latitude</td>
-
-          <td class="field-value"><input type="text" name="launch-site:latitude" value="52.2135"></td><td class="field-unit">deg. North</td>
-        </tr>
-
-        <tr>
-          <td>Longitude</td>
-
-          <td class="field-value"><input type="text" name="launch-site:longitude" value="0.0964"></td><td class="field-unit">deg. East</td>
-        </tr>
-
-        <tr>
-          <td>Altitude</td>
-
-          <td class="field-value"><input type="text" name="launch-site:altitude" value="0"></td><td class="field-unit">m</td>
-        </tr>
-
-        <tr>
-          <th colspan="3">Atmosphere model</th>
-        </tr>
-
-        <tr>
-          <td>Wind speed error</td>
-
-          <td class="field-value"><input type="text" name="atmosphere:wind-error" value="0"></td><td class="field-unit">m/s (RMS)</td>
-        </tr>
-
-        <tr>
-          <th colspan="3">Altitude model</th>
-        </tr>
-
-        <tr>
-          <td>Ascent rate</td>
-
-          <td class="field-value"><input type="text" name="altitude-model:ascent-rate" value="3"></td><td class="field-unit">m/s</td>
-        </tr>
-
-        <tr>
-          <td>Descent rate</td>
-
-          <td class="field-value"><input type="text" name="altitude-model:descent-rate" value="5"></td><td class="field-unit">m/s (sea level)</td>
-        </tr>
-
-        <tr>
-          <td>Burst altitude</td>
-
-          <td class="field-value"><input type="text" name="altitude-model:burst-altitude" value="30000"></td><td class="field-unit">m</td>
-        </tr>
-      </table>
-    </form>
-  </div>
-  <div id="toolbox" class="ui-widget ui-widget-content ui-corner-tr">
-  <div class="ui-widget-header ui-corner-tr ui-corner-bottom ui-header">Toolbox</div>
-  <a href="#" class="ui-corner-all ui-state-default" id="new-prediction-button">New prediction</a>
-  </div>
-  <!--
-  <div id="error-dialog" title="Error">
-  	<div id="error-message">HEllo</div>
-  </div>
-  -->
+<div id="map_canvas"></div>
+<div id="toolbox">
+<a href="#" class="ui-state-default ui-corner-all ui-widget lp-button" id="new-prediction-button" name="new-prediction-button"><span class="ui-icon ui-icon-triangle-1-s"></span>New prediction</a>
+<a href="#" class="ui-state-default ui-corner-all ui-widget lp-button" id="clear-all-button">Clear all</a>
+</div>
+<div id="new_prediction" class="ui-widget ui-widget-content">
+<form id="scenario" name="scenario" action="runpred.cgi" method="post">
+<table summary="Scenario parameters" id="scenario_table">
+<tbody>
+<tr>
+<th colspan="3">Launch site</th>
+</tr>
+<tr>
+<td>Latitude</td>
+<td class="field-value"><input type="text" name="launch-site:latitude" value="52.2135" /></td>
+<td class="field-unit">deg. North</td>
+</tr>
+<tr>
+<td>Longitude</td>
+<td class="field-value"><input type="text" name="launch-site:longitude" value="0.0964" /></td>
+<td class="field-unit">deg. East</td>
+</tr>
+<tr>
+<td>Altitude</td>
+<td class="field-value"><input type="text" name="launch-site:altitude" value="0" /></td>
+<td class="field-unit">m</td>
+</tr>
+<tr>
+<th colspan="3">Atmosphere model</th>
+</tr>
+<tr>
+<td>Wind speed error</td>
+<td class="field-value"><input type="text" name="atmosphere:wind-error" value="0" /></td>
+<td class="field-unit">m/s (RMS)</td>
+</tr>
+<tr>
+<th colspan="3">Altitude model</th>
+</tr>
+<tr>
+<td>Ascent rate</td>
+<td class="field-value"><input type="text" name="altitude-model:ascent-rate" value="3" /></td>
+<td class="field-unit">m/s</td>
+</tr>
+<tr>
+<td>Descent rate</td>
+<td class="field-value"><input type="text" name="altitude-model:descent-rate" value="5" /></td>
+<td class="field-unit">m/s (sea level)</td>
+</tr>
+<tr>
+<td>Burst altitude</td>
+<td class="field-value"><input type="text" name="altitude-model:burst-altitude" value="30000" /></td>
+<td class="field-unit">m</td>
+</tr>
+</tbody>
+<tfoot>
+<tr>
+<td colspan="3" class="button-box">
+<input type="submit" name="submit" value="Queue prediction"></input>
+</td></tr>
+</tfoot>
+</table>
+<span id="prediction-running">Prediction running&hellip;</span>
+</form>
+</div>
 </body>
 </html>
