@@ -54,7 +54,6 @@ fi
 mv ${NEWDIR} ${DATADIR}
 rm -rf ${TMPDIR}
 
-# Now set the group and permissions for the data dir
-chgrp -R cuspaceflight ${DATADIR}
+# Now set the permissions for the data dir
 chmod -R g+rw ${DATADIR}
 
