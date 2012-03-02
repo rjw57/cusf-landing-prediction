@@ -1,5 +1,5 @@
 var g_map_object = null;
-function init_map() {
+function init_map(lat, lon) {
         var latlng = new google.maps.LatLng(52, 0);
         var options = {
                 zoom: 8,
@@ -227,8 +227,12 @@ function POSIXtoDate(timestamp)
 }
 
 $(document).ready(function() {
-        init_map();
-        populate_map();
+        $.getJSON("scenario-template.json", function(data)
+        {
+                init_map(data["launch-site"].latitude, 
+                        data["launch-site"].longitude);
+                populate_map();
+        }
 });
 
 // vim:et:ts=8:sw=8:autoindent
