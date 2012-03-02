@@ -1,6 +1,6 @@
 var g_map_object = null;
-function init_map() {
-        var latlng = new google.maps.LatLng(52, 0);
+function init_map(lat, lon) {
+        var latlng = new google.maps.LatLng(lat, lon);
         var options = {
                 zoom: 8,
                 center: latlng,
@@ -227,8 +227,12 @@ function POSIXtoDate(timestamp)
 }
 
 $(document).ready(function() {
-        init_map();
-        populate_map();
+        $.getJSON("scenario-template.json", function(data)
+        {
+                init_map(data["launch-site"].latitude, 
+                        data["launch-site"].longitude);
+                populate_map();
+        });
 });
 
 // vim:et:ts=8:sw=8:autoindent

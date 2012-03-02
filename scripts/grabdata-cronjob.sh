@@ -47,4 +47,4 @@ ${GETDATA} --lat=52 --lon=0 --latdelta=10 --londelta=10 -v -f 180 2>${LOGFILE}
 
 # Delete any data that hasn't been changed for 3 days. This stops us filling
 # the CUSF quota with old atmosphere data.
-find ${GFDSIR} -mtime 3 -name 'gfs*' | xargs rm -f
+find ${GFSDIR} -mtime 3 -name 'gfs*' | xargs rm -f
